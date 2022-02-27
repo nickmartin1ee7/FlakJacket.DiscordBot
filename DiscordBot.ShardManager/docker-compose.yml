@@ -1,0 +1,13 @@
+version: '3.4'
+
+services:
+  DiscordBot.ShardManager.WebApi:
+    image: ${DOCKER_REGISTRY-}discordbotshardmanagerwebapi
+    environment:
+        - ShardManager__MaxShards
+        - ShardManager__InternalShards
+    ports:
+        - 8091:80
+    build:
+      context: .
+      dockerfile: DiscordBot.ShardManager.WebApi/Dockerfile

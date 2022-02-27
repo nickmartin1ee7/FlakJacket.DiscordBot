@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordBot.ShardManager.ClassLibrary", "DiscordBot.ShardManager.ClassLibrary\DiscordBot.ShardManager.ClassLibrary.csproj", "{CDB54F1F-6E1C-4462-9CBF-8962CD3E2857}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordBot.ShardManager.WebApi", "DiscordBot.ShardManager.WebApi\DiscordBot.ShardManager.WebApi.csproj", "{8A7573F5-7689-431E-825B-1636B4DCE2C9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CDB54F1F-6E1C-4462-9CBF-8962CD3E2857}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDB54F1F-6E1C-4462-9CBF-8962CD3E2857}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDB54F1F-6E1C-4462-9CBF-8962CD3E2857}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDB54F1F-6E1C-4462-9CBF-8962CD3E2857}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A7573F5-7689-431E-825B-1636B4DCE2C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A7573F5-7689-431E-825B-1636B4DCE2C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A7573F5-7689-431E-825B-1636B4DCE2C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A7573F5-7689-431E-825B-1636B4DCE2C9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
