@@ -28,7 +28,7 @@ services:
   seq:
     image: datalust/seq:2021.3.6681
     ports:
-        - 8080:80
+        - 8070:80
     environment:
         - ACCEPT_EULA=Y
     volumes:
@@ -50,7 +50,7 @@ services:
         - ShardManager__MaxShards
         - ShardManager__InternalShards
     ports:
-        - 8081:80
+        - 8071:80
     deploy:
       replicas: 1
       mode: replicated
