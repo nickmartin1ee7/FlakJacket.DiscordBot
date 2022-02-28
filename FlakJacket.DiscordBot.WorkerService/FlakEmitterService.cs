@@ -60,18 +60,17 @@ public class FlakEmitterService : IDisposable
 
         if (_lastReport is null || !_lastReport.Posts.Any())
             return;
+        var channels = await _guildApi.GetGuildChannelsAsync(guildId);
+        var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
+
+        if (feedChannel is null) return;
+        var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
 
         foreach (var post in _lastReport.Posts.Reverse())
         {
-            var channels = await _guildApi.GetGuildChannelsAsync(guildId);
-            var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
-
-            if (feedChannel is null) return;
-
-            var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
             if (lastMessages.Entity
                     .FirstOrDefault(m => m.Embeds
-                        .FirstOrDefault(e => e.Title.Value.GetHashCode() == post.GetHashCode()) is not null)
+                        .FirstOrDefault(e => e.Title.Value.ToUniformHashCode() == post.GetHashCode()) is not null)
                 is not null)
             {
                 _logger.LogTrace("Post {existingPost} already present on channel {channel}", post.GetHashCode(), feedChannel);
