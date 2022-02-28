@@ -7,6 +7,8 @@ services:
         - DiscordSettings__Token
         - DiscordSettings__Status
         - DiscordSettings__ShardManagerUri
+        - DiscordSettings__SetupChannelName
+        - DiscordSettings__UpdateDelay
         - LoggerConfig__ServerUri
         - LoggerConfig__ApiKey
     depends_on:
