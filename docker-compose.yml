@@ -12,6 +12,7 @@ services:
         - DiscordSettings__ShardManagerUri=http://shardmanager
         - DiscordSettings__SetupChannelName=flakjacket
         - DiscordSettings__UpdateDelay=00:00:30
+        - DiscordSettings__MaxBroadcastPosts=70
         - LoggerConfig__ServerUri=http://seq
         - LoggerConfig__ApiKey
     depends_on:

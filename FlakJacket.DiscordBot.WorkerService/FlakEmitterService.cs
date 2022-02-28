@@ -16,8 +16,6 @@ namespace FlakJacket.DiscordBot.WorkerService;
 
 public class FlakEmitterService : IDisposable
 {
-    private const int MAX_SEARCH_POSTS = 5;
-
     private readonly ILogger<FlakEmitterService> _logger;
     private readonly IDiscordRestGuildAPI _guildApi;
     private readonly IDiscordRestChannelAPI _channelApi;
@@ -26,7 +24,6 @@ public class FlakEmitterService : IDisposable
     private readonly TimeSpan _delayTime;
 
     private CancellationTokenSource? _cts;
-    private Task? _updateJobTask;
     private FeedReport? _lastReport;
 
     public FlakEmitterService(ILogger<FlakEmitterService> logger,
@@ -50,7 +47,7 @@ public class FlakEmitterService : IDisposable
 
         // Must be cancelled and not running to spawn another job
         _cts = new CancellationTokenSource();
-        _updateJobTask = Task.Run(UpdateJob);
+        _ = Task.Run(UpdateJob);
     }
 
     public async Task EmitToAsync(Snowflake guildId)
@@ -110,13 +107,13 @@ public class FlakEmitterService : IDisposable
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("Got initial content @ {lastUpdate}", lastUpdate);
-                    await BroadcastPostsAsync(_lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, MAX_SEARCH_POSTS)]);
+                    await BroadcastPostsAsync(_lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, _settings.MaxBroadcastPosts)]);
                 }
                 else if (latestPostHash != lastPostHash)
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("New update @ {lastUpdate}", lastUpdate);
-                    await BroadcastPostsAsync(_lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, MAX_SEARCH_POSTS)]);
+                    await BroadcastPostsAsync(_lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, _settings.MaxBroadcastPosts)]);
                 }
                 else
                 {

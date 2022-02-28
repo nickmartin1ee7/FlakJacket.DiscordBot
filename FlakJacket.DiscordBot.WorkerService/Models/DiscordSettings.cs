@@ -8,4 +8,5 @@ public class DiscordSettings
     public string ShardManagerUri { get; set; }
     public string SetupChannelName { get; set; }
     public string UpdateDelay { get; set; }
+    public int MaxBroadcastPosts { get; set; }
 }

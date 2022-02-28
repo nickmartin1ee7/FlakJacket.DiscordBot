@@ -9,6 +9,7 @@ services:
         - DiscordSettings__ShardManagerUri
         - DiscordSettings__SetupChannelName
         - DiscordSettings__UpdateDelay
+        - DiscordSettings__MaxBroadcastPosts
         - LoggerConfig__ServerUri
         - LoggerConfig__ApiKey
     depends_on:
