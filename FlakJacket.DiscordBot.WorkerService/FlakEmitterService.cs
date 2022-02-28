@@ -77,13 +77,13 @@ public class FlakEmitterService : IDisposable
                     .FirstOrDefault(e => e.Title.Value.GetHashCode() == lastPost.GetHashCode()) is not null)
             is not null)
         {
-            _logger.LogTrace("Post already present on channel {channel}", feedChannel);
+            _logger.LogTrace("Post {existingPost} already present on channel {channel}", lastPost.GetHashCode(), feedChannel);
             return;
         }
 
         var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { CreateEmbedFrom(lastPost) }));
 
-        _logger.LogTrace("Broadcast to {guildId}: {result}", guildId, result.Entity.ID);
+        _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", lastPost.GetHashCode(), guildId, result.Entity.ID);
     }
 
     private async Task UpdateJob()
@@ -174,7 +174,7 @@ public class FlakEmitterService : IDisposable
 
                 var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
 
-                _logger.LogTrace("Broadcast to {guildId}: {result}", knownGuild, result.Entity.ID);
+                _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", post.GetHashCode(), knownGuild, result.Entity.ID);
             }
         }
     }
