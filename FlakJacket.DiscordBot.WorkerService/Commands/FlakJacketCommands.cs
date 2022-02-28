@@ -9,6 +9,7 @@ using Remora.Discord.Commands.Feedback.Services;
 using Remora.Rest.Core;
 using Remora.Results;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using FlakJacket.DiscordBot.WorkerService.Models;
 using Remora.Rest.Results;
@@ -42,6 +43,15 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
     public async Task<IResult> SetupAsync()
     {
         await LogCommandUsageAsync(typeof(FlakJacketCommands).GetMethod(nameof(SetupAsync)));
+
+        var channels = await _guildApi.GetGuildChannelsAsync(_ctx.GuildID.Value);
+        var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
+
+        if (feedChannel is not null)
+        {
+            var result = await _feedbackService.SendContextualErrorAsync($"A channeled named {_settings.SetupChannelName} already exists!");
+            return Result.FromError(result);
+        }
 
         var createResult = await _guildApi.CreateGuildChannelAsync(
             _ctx.GuildID.Value,
