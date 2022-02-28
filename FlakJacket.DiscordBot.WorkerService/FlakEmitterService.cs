@@ -74,7 +74,7 @@ public class FlakEmitterService : IDisposable
         var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
         if (lastMessages.Entity
                 .FirstOrDefault(m => m.Embeds
-                    .FirstOrDefault(e => e.Title.Value.GetHashCode() == lastPost.Title?.GetHashCode()) is not null)
+                    .FirstOrDefault(e => e.Title.Value.GetHashCode() == lastPost.GetHashCode()) is not null)
             is not null)
         {
             _logger.LogTrace("Post already present on channel {channel}", feedChannel);
@@ -106,7 +106,7 @@ public class FlakEmitterService : IDisposable
                     _logger.LogTrace("Connection re-established");
                 }
 
-                var latestPostHash = _lastReport.Posts.First().Title?.GetHashCode();
+                var latestPostHash = _lastReport.Posts.First().GetHashCode();
                 _logger.LogTrace("Old Post: {lastPostHash} | New Post: {latestPostHash}", lastPostHash, latestPostHash);
 
                 if (lastPostHash == default)
@@ -168,7 +168,7 @@ public class FlakEmitterService : IDisposable
 
                 if (HasPostBeenEmitted(post, lastMessages))
                 {
-                    _logger.LogTrace("Post already present on channel {channel}", feedChannel);
+                    _logger.LogTrace("Post {existingPost} already present on channel {channel}", post.GetHashCode(), feedChannel);
                     continue;
                 }
 
@@ -187,7 +187,7 @@ public class FlakEmitterService : IDisposable
 
         return messages.Entity
                 .FirstOrDefault(m => m.Embeds
-                    .FirstOrDefault(e => e.Title.Value.GetHashCode() == post.Title!.GetHashCode()) is not null)
+                    .FirstOrDefault(e => e.Title.Value.GetHashCode() == post.GetHashCode()) is not null)
             is not null;
     }
 

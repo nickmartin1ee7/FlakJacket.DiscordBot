@@ -61,8 +61,10 @@ public class Post
     public string? ImageUri { get; set; }
     public string? TimeAgo { get; set; }
     public string? Location { get; set; }
-    public string? Title { get; set; }
-    public string? Source { get; set; }
+    public string Title { get; set; }
+    public string Source { get; set; }
+
+    public override int GetHashCode() => Title.GetHashCode(StringComparison.InvariantCultureIgnoreCase);
 
     public override string ToString()
     {
