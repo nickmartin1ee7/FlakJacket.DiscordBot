@@ -91,7 +91,7 @@ public class FlakEmitterService : IDisposable
             {
                 _logger.LogTrace("Downloading latest content...");
 
-                _lastReport = await _ds.GetAsync();
+                _lastReport = await _ds.GetAsync(_settings.SourceUri);
                 DateTime? lastUpdate = DateTime.Now;
 
                 if (lastCallFaulted)

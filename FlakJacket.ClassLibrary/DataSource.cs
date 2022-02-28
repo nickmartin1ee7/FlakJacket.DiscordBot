@@ -4,13 +4,11 @@ namespace FlakJacket.ClassLibrary;
 
 public class DataSource : IDisposable
 {
-    private const string SOURCE_URL = "https://liveuamap.com";
-
     private readonly HttpClient _client = new();
 
-    public async Task<FeedReport> GetAsync()
+    public async Task<FeedReport> GetAsync(string uri)
     {
-        var result = await _client.GetAsync(SOURCE_URL);
+        var result = await _client.GetAsync(uri);
         var html = await result.Content.ReadAsStringAsync();
 
         if (!result.IsSuccessStatusCode || string.IsNullOrWhiteSpace(html))

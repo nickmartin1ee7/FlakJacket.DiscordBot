@@ -9,4 +9,5 @@ public class DiscordSettings
     public string SetupChannelName { get; set; }
     public string UpdateDelay { get; set; }
     public int MaxBroadcastPosts { get; set; }
+    public string SourceUri { get; set; }
 }
