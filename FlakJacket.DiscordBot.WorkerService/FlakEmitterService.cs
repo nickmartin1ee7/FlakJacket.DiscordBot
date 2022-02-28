@@ -61,29 +61,27 @@ public class FlakEmitterService : IDisposable
         if (_lastReport is null || !_lastReport.Posts.Any())
             return;
 
-        var lastPost = _lastReport.Posts.FirstOrDefault();
-
-        if (lastPost is null)
-            return;
-
-        var channels = await _guildApi.GetGuildChannelsAsync(guildId);
-        var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
-
-        if (feedChannel is null) return;
-
-        var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
-        if (lastMessages.Entity
-                .FirstOrDefault(m => m.Embeds
-                    .FirstOrDefault(e => e.Title.Value.GetHashCode() == lastPost.GetHashCode()) is not null)
-            is not null)
+        foreach (var post in _lastReport.Posts.Reverse())
         {
-            _logger.LogTrace("Post {existingPost} already present on channel {channel}", lastPost.GetHashCode(), feedChannel);
-            return;
+            var channels = await _guildApi.GetGuildChannelsAsync(guildId);
+            var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
+
+            if (feedChannel is null) return;
+
+            var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
+            if (lastMessages.Entity
+                    .FirstOrDefault(m => m.Embeds
+                        .FirstOrDefault(e => e.Title.Value.GetHashCode() == post.GetHashCode()) is not null)
+                is not null)
+            {
+                _logger.LogTrace("Post {existingPost} already present on channel {channel}", post.GetHashCode(), feedChannel);
+                return;
+            }
+
+            var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { CreateEmbedFrom(post) }));
+
+            _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", post.GetHashCode(), guildId, result.Entity.ID);
         }
-
-        var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { CreateEmbedFrom(lastPost) }));
-
-        _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", lastPost.GetHashCode(), guildId, result.Entity.ID);
     }
 
     private async Task UpdateJob()
