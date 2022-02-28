@@ -60,7 +60,7 @@ public class FlakEmitterService : IDisposable
         {
             try
             {
-                _logger.LogInformation("Downloading latest content...");
+                _logger.LogTrace("Downloading latest content...");
 
                 lastReport = await _ds.GetAsync();
                 lastUpdate = DateTime.Now;
@@ -68,11 +68,11 @@ public class FlakEmitterService : IDisposable
                 if (lastCallFaulted)
                 {
                     lastCallFaulted = false;
-                    _logger.LogInformation("Connection re-established");
+                    _logger.LogTrace("Connection re-established");
                 }
 
                 var latestPostHash = lastReport.Posts.First().Title?.GetHashCode();
-                _logger.LogInformation("Old Post: {lastPostHash} | New Post: {latestPostHash}", lastPostHash, latestPostHash);
+                _logger.LogTrace("Old Post: {lastPostHash} | New Post: {latestPostHash}", lastPostHash, latestPostHash);
 
                 if (lastPostHash == default)
                 {
@@ -88,7 +88,7 @@ public class FlakEmitterService : IDisposable
                 }
                 else
                 {
-                    _logger.LogInformation("No new content @ {lastUpdate}", lastUpdate);
+                    _logger.LogTrace("No new content @ {lastUpdate}", lastUpdate);
                 }
             }
             catch (Exception e)
@@ -102,7 +102,7 @@ public class FlakEmitterService : IDisposable
                 continue;
             }
 
-            _logger.LogInformation("Updating in {_delayTime} @ {nextUpdate}", _delayTime, DateTime.Now.Add(_delayTime));
+            _logger.LogTrace("Updating in {_delayTime} @ {nextUpdate}", _delayTime, DateTime.Now.Add(_delayTime));
 
             await Task.Delay(_delayTime);
         }
