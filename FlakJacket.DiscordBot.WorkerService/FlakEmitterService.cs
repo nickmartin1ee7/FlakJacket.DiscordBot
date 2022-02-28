@@ -10,11 +10,14 @@ using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Objects;
 using Remora.Rest.Core;
+using Remora.Results;
 
 namespace FlakJacket.DiscordBot.WorkerService;
 
 public class FlakEmitterService : IDisposable
 {
+    private const int MAX_SEARCH_POSTS = 5;
+
     private readonly ILogger<FlakEmitterService> _logger;
     private readonly IDiscordRestGuildAPI _guildApi;
     private readonly IDiscordRestChannelAPI _channelApi;
@@ -74,11 +77,11 @@ public class FlakEmitterService : IDisposable
                     .FirstOrDefault(e => e.Title.Value.GetHashCode() == lastPost.Title?.GetHashCode()) is not null)
             is not null)
         {
-            _logger.LogTrace("Last post already present on channel {channel}", feedChannel);
+            _logger.LogTrace("Post already present on channel {channel}", feedChannel);
             return;
         }
 
-        var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { CreateEmbedFromLatestPost(lastPost) }));
+        var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { CreateEmbedFrom(lastPost) }));
 
         _logger.LogTrace("Broadcast to {guildId}: {result}", guildId, result.Entity.ID);
     }
@@ -110,13 +113,13 @@ public class FlakEmitterService : IDisposable
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("Got initial content @ {lastUpdate}", lastUpdate);
-                    await BroadcastLatestPostAsync(_lastReport.Posts.FirstOrDefault());
+                    await BroadcastPostsAsync(_lastReport.Posts[..GetIndexUpTo(_lastReport.Posts, MAX_SEARCH_POSTS)]);
                 }
                 else if (latestPostHash != lastPostHash)
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("New update @ {lastUpdate}", lastUpdate);
-                    await BroadcastLatestPostAsync(_lastReport.Posts.FirstOrDefault());
+                    await BroadcastPostsAsync(_lastReport.Posts[..GetIndexUpTo(_lastReport.Posts, MAX_SEARCH_POSTS)]);
                 }
                 else
                 {
@@ -140,46 +143,64 @@ public class FlakEmitterService : IDisposable
         }
     }
 
-    private async Task BroadcastLatestPostAsync(Post? latestPost)
+    private static int GetIndexUpTo<T>(T[] arr, int maxIndex)
     {
-        if (latestPost is null) return;
+        return arr.Length > maxIndex ? maxIndex : arr.Length - 1;
+    }
+
+    private async Task BroadcastPostsAsync(params Post?[] posts)
+    {
+        if (!posts.Any()) return;
         if (!ShortTermMemory.KnownGuilds.Any()) return;
 
-        var embed = CreateEmbedFromLatestPost(latestPost);
-
-        foreach (var knownGuild in ShortTermMemory.KnownGuilds)
+        foreach (var post in posts.Reverse())
         {
-            var channels = await _guildApi.GetGuildChannelsAsync(knownGuild);
-            var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
+            var embed = CreateEmbedFrom(post);
 
-            if (feedChannel is null) continue;
-
-            var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
-            if (lastMessages.Entity
-                    .FirstOrDefault(m => m.Embeds
-                        .FirstOrDefault(e => e.Title.Value.GetHashCode() == latestPost.Title.GetHashCode()) is not null)
-                is not null)
+            foreach (var knownGuild in ShortTermMemory.KnownGuilds)
             {
-                _logger.LogTrace("Last post already present on channel {channel}", feedChannel);
-                continue;
+                var channels = await _guildApi.GetGuildChannelsAsync(knownGuild);
+                var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
+
+                if (feedChannel is null) continue;
+
+                var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
+
+                if (HasPostBeenEmitted(post, lastMessages))
+                {
+                    _logger.LogTrace("Post already present on channel {channel}", feedChannel);
+                    continue;
+                }
+
+                var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
+
+                _logger.LogTrace("Broadcast to {guildId}: {result}", knownGuild, result.Entity.ID);
             }
-
-            var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
-
-            _logger.LogTrace("Broadcast to {guildId}: {result}", knownGuild, result.Entity.ID);
         }
     }
 
-    private static Embed CreateEmbedFromLatestPost(Post? latestPost)
+    private static bool HasPostBeenEmitted(Post? post, Result<IReadOnlyList<IMessage>> messages)
+    {
+        // This will keep us from spamming servers if any issue finding previous posts
+        if (post?.Title is null || messages.IsSuccess && !messages.Entity.Any())
+            return true;
+
+        return messages.Entity
+                .FirstOrDefault(m => m.Embeds
+                    .FirstOrDefault(e => e.Title.Value.GetHashCode() == post.Title!.GetHashCode()) is not null)
+            is not null;
+    }
+
+    private static Embed CreateEmbedFrom(Post? post)
     {
         return new Embed(
-            Title: latestPost.Title,
-            Description: @$"Reported **{latestPost.TimeAgo}** for the following location: **{latestPost.Location}**
+            Title: post.Title,
+            Description: @$"Reported **{post.TimeAgo}** for the following location: **{post.Location}**
 
-Find out more at: {latestPost.Source}",
-            Thumbnail: latestPost.ImageUri is null ? null : new Optional<IEmbedThumbnail>(new EmbedThumbnail(latestPost.ImageUri)),
-            Footer: latestPost.Id is null ? null : new Optional<IEmbedFooter>(
-                new EmbedFooter(latestPost.Id)));
+Find out more at: {post.Source}",
+            Thumbnail: post.ImageUri is null ? new Optional<IEmbedThumbnail>() : new Optional<IEmbedThumbnail>(new EmbedThumbnail(post.ImageUri)),
+            Footer: post.Id is null ? new Optional<IEmbedFooter>() : new Optional<IEmbedFooter>(
+                new EmbedFooter(post.Id)));
     }
 
     public void Dispose()
