@@ -149,6 +149,9 @@ public class FlakEmitterService : IDisposable
 
         foreach (var post in posts.Reverse())
         {
+            if (post is null)
+                continue;
+
             var embed = CreateEmbedFrom(post);
 
             foreach (var knownGuild in ShortTermMemory.KnownGuilds)
@@ -168,7 +171,15 @@ public class FlakEmitterService : IDisposable
 
                 var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
 
-                _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", post.GetHashCode(), knownGuild, result.Entity.ID);
+                if (result.IsSuccess)
+                {
+                    _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", post.GetHashCode(), knownGuild,
+                        result.Entity.ID);
+                }
+                else
+                {
+                    _logger.LogError("Failed to Broadcast post {post} to {guildId}", post.GetHashCode(), knownGuild); 
+                }
             }
         }
     }
