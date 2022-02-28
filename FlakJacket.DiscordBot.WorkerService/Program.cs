@@ -27,6 +27,7 @@ namespace FlakJacket.DiscordBot.WorkerService;
 public static class Program
 {
     private static readonly HttpClient _httpClient = new();
+    private static IHost _app;
 
     public static async Task Main(string[] args)
     {
@@ -57,7 +58,7 @@ public static class Program
 
         AppDomain.CurrentDomain.ProcessExit += async (_, _) =>
             await ReleaseShardGroupAsync(shardGroup, settings);
-
+        
         try
         {
             int runningClients = 0;
@@ -95,8 +96,9 @@ public static class Program
             $"{settings.ShardManagerUri}/unassignShardGroup?groupId={shardGroup.GroupId}");
     }
 
-    private static IHost CreateHost(string[] args, IConfigurationRoot configuration, bool shouldShard, int shardId, ShardGroup shardGroup, DiscordSettings settings) =>
-        Host.CreateDefaultBuilder(args)
+    private static IHost CreateHost(string[] args, IConfigurationRoot configuration, bool shouldShard, int shardId, ShardGroup shardGroup, DiscordSettings settings)
+    {
+        _app = Host.CreateDefaultBuilder(args)
             .UseSerilog(Log.Logger)
             .ConfigureServices(serviceCollection =>
             {
@@ -109,6 +111,7 @@ public static class Program
 
                 // Custom
                 serviceCollection.AddSingleton<DataSource>();
+                serviceCollection.AddSingleton<FlakEmitterService>();
 
                 // Discord
                 serviceCollection
@@ -137,6 +140,9 @@ public static class Program
             })
             .AddDiscordService(_ => settings.Token)
             .Build();
+
+        return _app;
+    }
 
     private static async Task<(HttpResponseMessage shardResponse, ShardGroup shardGroup)> DecideShardingAsync(string shardManagerUri, int attempts = 5)
     {

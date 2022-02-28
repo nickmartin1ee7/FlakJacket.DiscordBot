@@ -24,18 +24,21 @@ public class ReadyResponder : IResponder<IReady>
     private readonly IDiscordRestGuildAPI _guildApi;
     private readonly DiscordSettings _settings;
     private readonly SlashService _slashService;
+    private readonly FlakEmitterService _flakEmitterService;
 
     public ReadyResponder(ILogger<ReadyResponder> logger,
         DiscordGatewayClient discordGatewayClient,
         IDiscordRestGuildAPI guildApi,
         DiscordSettings settings,
-        SlashService slashService)
+        SlashService slashService,
+        FlakEmitterService flakEmitterService)
     {
         _logger = logger;
         _discordGatewayClient = discordGatewayClient;
         _guildApi = guildApi;
         _settings = settings;
         _slashService = slashService;
+        _flakEmitterService = flakEmitterService;
     }
 
     public async Task<Result> RespondAsync(IReady gatewayEvent, CancellationToken ct = new())
@@ -114,6 +117,7 @@ public class ReadyResponder : IResponder<IReady>
         }
 
         _ = Task.Run(LogClientDetailsAsync, ct);
+        _flakEmitterService.Start();
 
         return Result.FromSuccess();
     }

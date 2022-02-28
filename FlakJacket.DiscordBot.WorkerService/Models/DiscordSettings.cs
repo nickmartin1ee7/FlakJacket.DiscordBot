@@ -7,4 +7,5 @@ public class DiscordSettings
     public string Token { get; set; }
     public string ShardManagerUri { get; set; }
     public string SetupChannelName { get; set; }
+    public string UpdateDelay { get; set; }
 }

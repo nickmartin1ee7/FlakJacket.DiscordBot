@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Remora.Commands.Attributes;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
@@ -10,10 +9,9 @@ using Remora.Discord.Commands.Feedback.Services;
 using Remora.Rest.Core;
 using Remora.Results;
 using System.ComponentModel;
-using System.Drawing;
 using System.Threading.Tasks;
-using FlakJacket.DiscordBot.WorkerService.Extensions;
 using FlakJacket.DiscordBot.WorkerService.Models;
+using Remora.Rest.Results;
 
 namespace FlakJacket.DiscordBot.WorkerService.Commands;
 
@@ -40,22 +38,25 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
     [Description("Setup a new channel to follow events between Ukraine and Russia")]
     public async Task<IResult> SetupAsync()
     {
-        await LogCommandUsageAsync(typeof(MiscCommands).GetMethod(nameof(SetupAsync)));
+        await LogCommandUsageAsync(typeof(FlakJacketCommands).GetMethod(nameof(SetupAsync)));
 
         var createResult = await _guildApi.CreateGuildChannelAsync(
             _ctx.GuildID.Value,
             _settings.SetupChannelName,
-            new Optional<ChannelType>(ChannelType.GuildNews),
+            new Optional<ChannelType>(ChannelType.GuildText),
             new Optional<string>("Feed for updates on the war between Ukraine and Russia"),
             isNsfw: true);
 
         if (!createResult.IsSuccess)
-            return Result.FromError(createResult);
+        {
+            var result = await _feedbackService.SendContextualErrorAsync((createResult.Error as RestResultError<RestError>)?.Error.Message ?? "Failed to setup new channel!");
+            return Result.FromError(result);
+        }
 
         var reply = await _feedbackService.SendContextualEmbedAsync(new Embed(
-                "Channel {channel} setup successfully",
+                $"Channel {_settings.SetupChannelName} setup successfully",
                 Description:
-                "The channel {channel} is created. This bot will now make regular posts when an update is available. Images used may be NSFW!"),
+                $"The channel {_settings.SetupChannelName} is created. This bot will now make regular posts when an update is available. Images used may be NSFW!"),
             ct: CancellationToken);
 
         return reply.IsSuccess
