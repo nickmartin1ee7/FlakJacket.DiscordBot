@@ -49,7 +49,7 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
 
         if (feedChannel is not null)
         {
-            var result = await _feedbackService.SendContextualErrorAsync($"A channeled named {_settings.SetupChannelName} already exists!");
+            var result = await _feedbackService.SendContextualErrorAsync($"The channel <#{feedChannel.ID}> already exists!");
             return Result.FromError(result);
         }
 
