@@ -24,6 +24,7 @@ public class FlakEmitterService : IDisposable
 
     private CancellationTokenSource _cts;
     private Task _updateJobTask;
+    private FeedReport? lastReport;
 
     public FlakEmitterService(ILogger<FlakEmitterService> logger,
         IDiscordRestGuildAPI guildApi,
@@ -49,10 +50,39 @@ public class FlakEmitterService : IDisposable
         _updateJobTask = Task.Run(UpdateJob);
     }
 
+    public async Task EmitToAsync(Snowflake guildId)
+    {
+        if (_cts is null || _cts.IsCancellationRequested || _updateJobTask?.Status != TaskStatus.Running)
+            return;
+
+        if (lastReport is null || !lastReport.Posts.Any())
+            return;
+
+        var lastPost = lastReport.Posts.FirstOrDefault();
+
+        if (lastPost is null)
+            return;
+
+        var channels = await _guildApi.GetGuildChannelsAsync(guildId);
+        var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
+
+        if (feedChannel is null) return;
+
+        var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
+        if (lastMessages.Entity
+                .FirstOrDefault(m => m.Embeds
+                    .FirstOrDefault(e => e.Title.Value.GetHashCode() == lastPost.Title?.GetHashCode()) is not null)
+            is not null)
+            return;
+
+        var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { CreateEmbedFromLatestPost(lastPost) }));
+
+        _logger.LogTrace("Broadcast to {guildId}: {result}", guildId, result.Entity.ID);
+    }
+
     private async Task UpdateJob()
     {
         int? lastPostHash = null;
-        FeedReport? lastReport;
         DateTime? lastUpdate;
         bool lastCallFaulted = false;
 

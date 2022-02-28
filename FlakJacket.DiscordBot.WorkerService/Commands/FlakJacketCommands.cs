@@ -19,17 +19,20 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
 {
     private readonly FeedbackService _feedbackService;
     private readonly DiscordSettings _settings;
+    private readonly FlakEmitterService _flakEmitterService;
 
     public FlakJacketCommands(ILogger<FlakJacketCommands> logger,
         FeedbackService feedbackService,
         ICommandContext ctx,
         IDiscordRestGuildAPI guildApi,
         IDiscordRestChannelAPI channelApi,
-        DiscordSettings settings)
+        DiscordSettings settings,
+        FlakEmitterService flakEmitterService)
         : base(ctx, logger, guildApi, channelApi)
     {
         _feedbackService = feedbackService;
         _settings = settings;
+        _flakEmitterService = flakEmitterService;
     }
 
     [Command("setup")]
@@ -58,6 +61,8 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
                 Description:
                 $"The channel {_settings.SetupChannelName} is created. This bot will now make regular posts when an update is available. Images used may be NSFW!"),
             ct: CancellationToken);
+
+        await _flakEmitterService.EmitToAsync(_ctx.GuildID.Value);
 
         return reply.IsSuccess
             ? Result.FromSuccess()
