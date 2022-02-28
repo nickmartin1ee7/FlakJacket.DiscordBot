@@ -42,7 +42,7 @@ public class FlakEmitterService : IDisposable
 
     public void Start()
     {
-        if (_cts is not null && !_cts.IsCancellationRequested && _updateJobTask?.Status == TaskStatus.Running)
+        if (_cts is not null && !_cts.IsCancellationRequested)
             return;
 
         // Must be cancelled and not running to spawn another job
@@ -52,7 +52,7 @@ public class FlakEmitterService : IDisposable
 
     public async Task EmitToAsync(Snowflake guildId)
     {
-        if (_cts is null || _cts.IsCancellationRequested || _updateJobTask?.Status != TaskStatus.Running)
+        if (_cts is null || _cts.IsCancellationRequested)
             return;
 
         if (lastReport is null || !lastReport.Posts.Any())
