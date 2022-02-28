@@ -73,7 +73,10 @@ public class FlakEmitterService : IDisposable
                 .FirstOrDefault(m => m.Embeds
                     .FirstOrDefault(e => e.Title.Value.GetHashCode() == lastPost.Title?.GetHashCode()) is not null)
             is not null)
+        {
+            _logger.LogTrace("Last post already present on channel {channel}", feedChannel);
             return;
+        }
 
         var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { CreateEmbedFromLatestPost(lastPost) }));
 
@@ -157,7 +160,10 @@ public class FlakEmitterService : IDisposable
                     .FirstOrDefault(m => m.Embeds
                         .FirstOrDefault(e => e.Title.Value.GetHashCode() == latestPost.Title.GetHashCode()) is not null)
                 is not null)
+            {
+                _logger.LogTrace("Last post already present on channel {channel}", feedChannel);
                 break;
+            }
 
             var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
 
