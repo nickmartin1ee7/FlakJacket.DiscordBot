@@ -162,7 +162,7 @@ public class FlakEmitterService : IDisposable
                 is not null)
             {
                 _logger.LogTrace("Last post already present on channel {channel}", feedChannel);
-                break;
+                continue;
             }
 
             var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
