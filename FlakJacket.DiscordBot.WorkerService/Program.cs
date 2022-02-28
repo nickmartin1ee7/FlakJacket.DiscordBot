@@ -58,7 +58,7 @@ public static class Program
 
         AppDomain.CurrentDomain.ProcessExit += async (_, _) =>
             await ReleaseShardGroupAsync(shardGroup, settings);
-        
+
         try
         {
             int runningClients = 0;
