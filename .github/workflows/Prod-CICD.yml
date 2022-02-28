@@ -50,12 +50,3 @@ jobs:
     - name: Build Docker Image (DiscordBot)
       if: ${{ github.ref == 'refs/heads/main' }}
       run: docker buildx build --platform linux/arm64,linux/amd64 -f "FlakJacket.DiscordBot.WorkerService/Dockerfile" --force-rm -t nickmartin1ee7/flakjacketdiscordbotworkerservice:latest --push .
-
-  deployment:
-    runs-on: self-hosted
-    needs: publish
-
-    steps:
-    - name: Trigger Production Image Pull
-      if: ${{ github.ref == 'refs/heads/main' }}
-      run: curl --location --request POST '${{ secrets.PROD_WEBHOOK_URI }}'
