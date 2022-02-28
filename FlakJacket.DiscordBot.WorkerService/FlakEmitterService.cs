@@ -22,9 +22,9 @@ public class FlakEmitterService : IDisposable
     private readonly DataSource _ds;
     private readonly TimeSpan _delayTime;
 
-    private CancellationTokenSource _cts;
-    private Task _updateJobTask;
-    private FeedReport? lastReport;
+    private CancellationTokenSource? _cts;
+    private Task? _updateJobTask;
+    private FeedReport? _lastReport;
 
     public FlakEmitterService(ILogger<FlakEmitterService> logger,
         IDiscordRestGuildAPI guildApi,
@@ -55,10 +55,10 @@ public class FlakEmitterService : IDisposable
         if (_cts is null || _cts.IsCancellationRequested)
             return;
 
-        if (lastReport is null || !lastReport.Posts.Any())
+        if (_lastReport is null || !_lastReport.Posts.Any())
             return;
 
-        var lastPost = lastReport.Posts.FirstOrDefault();
+        var lastPost = _lastReport.Posts.FirstOrDefault();
 
         if (lastPost is null)
             return;
@@ -86,8 +86,7 @@ public class FlakEmitterService : IDisposable
     private async Task UpdateJob()
     {
         int? lastPostHash = null;
-        DateTime? lastUpdate;
-        bool lastCallFaulted = false;
+        var lastCallFaulted = false;
 
         while (!_cts.IsCancellationRequested)
         {
@@ -95,8 +94,8 @@ public class FlakEmitterService : IDisposable
             {
                 _logger.LogTrace("Downloading latest content...");
 
-                lastReport = await _ds.GetAsync();
-                lastUpdate = DateTime.Now;
+                _lastReport = await _ds.GetAsync();
+                DateTime? lastUpdate = DateTime.Now;
 
                 if (lastCallFaulted)
                 {
@@ -104,20 +103,20 @@ public class FlakEmitterService : IDisposable
                     _logger.LogTrace("Connection re-established");
                 }
 
-                var latestPostHash = lastReport.Posts.First().Title?.GetHashCode();
+                var latestPostHash = _lastReport.Posts.First().Title?.GetHashCode();
                 _logger.LogTrace("Old Post: {lastPostHash} | New Post: {latestPostHash}", lastPostHash, latestPostHash);
 
                 if (lastPostHash == default)
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("Got initial content @ {lastUpdate}", lastUpdate);
-                    await BroadcastLatestPostAsync(lastReport.Posts.FirstOrDefault());
+                    await BroadcastLatestPostAsync(_lastReport.Posts.FirstOrDefault());
                 }
                 else if (latestPostHash != lastPostHash)
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("New update @ {lastUpdate}", lastUpdate);
-                    await BroadcastLatestPostAsync(lastReport.Posts.FirstOrDefault());
+                    await BroadcastLatestPostAsync(_lastReport.Posts.FirstOrDefault());
                 }
                 else
                 {
