@@ -57,9 +57,9 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
         }
 
         var reply = await _feedbackService.SendContextualEmbedAsync(new Embed(
-                $"Channel {_settings.SetupChannelName} setup successfully",
+                $"Channel #{createResult.Entity.Name.Value} setup successfully",
                 Description:
-                $"The channel {_settings.SetupChannelName} is created. This bot will now make regular posts when an update is available. Images used may be NSFW!"),
+                $"The channel <#{createResult.Entity.ID}> is created. This bot will now make regular posts when an update is available. Images used may be NSFW!"),
             ct: CancellationToken);
 
         await _flakEmitterService.EmitToAsync(_ctx.GuildID.Value);
