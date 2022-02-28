@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: FlakJacket.DiscordBot.WorkerService/Dockerfile
     environment:
-        - DiscordSettings__Token=OTMwMjg2NjM0MTcwMTk1OTk4.Ydzq8Q.4wXyVUrpk99SBTzO_ZNpsqg5nNc
+        - DiscordSettings__Token
         - DiscordSettings__Status=Testing!
         - DiscordSettings__ShardManagerUri=http://shardmanager
         - DiscordSettings__SetupChannelName=flakjacket
