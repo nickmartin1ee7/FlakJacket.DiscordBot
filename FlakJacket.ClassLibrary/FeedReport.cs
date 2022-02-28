@@ -64,7 +64,7 @@ public class Post
     public string Title { get; set; }
     public string Source { get; set; }
 
-    public override int GetHashCode() => Title.GetHashCode(StringComparison.InvariantCultureIgnoreCase);
+    public override int GetHashCode() => Title.ToUniformHashCode();
 
     public override string ToString()
     {

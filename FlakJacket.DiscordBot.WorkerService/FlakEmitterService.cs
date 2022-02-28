@@ -185,10 +185,12 @@ public class FlakEmitterService : IDisposable
         if (post?.Title is null || messages.IsSuccess && !messages.Entity.Any())
             return true;
 
+        var postHashCode = post.GetHashCode();
+
         return messages.Entity
-                .FirstOrDefault(m => m.Embeds
-                    .FirstOrDefault(e => e.Title.Value.GetHashCode() == post.GetHashCode()) is not null)
-            is not null;
+                .Any(m => m.Embeds
+                    .Any(e =>
+                        e.Title.Value.ToUniformHashCode() == postHashCode));
     }
 
     private static Embed CreateEmbedFrom(Post? post)
