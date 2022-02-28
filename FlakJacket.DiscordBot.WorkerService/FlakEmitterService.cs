@@ -96,7 +96,7 @@ public class FlakEmitterService : IDisposable
                 lastCallFaulted = true;
 
                 _logger.LogError(new EventId(e.HResult), e, e.Message);
-                _logger.LogInformation("Retrying in {_delayTime}...", _delayTime);
+                _logger.LogTrace("Retrying in {_delayTime}...", _delayTime);
 
                 await Task.Delay(_delayTime);
                 continue;
@@ -113,14 +113,7 @@ public class FlakEmitterService : IDisposable
         if (latestPost is null) return;
         if (!ShortTermMemory.KnownGuilds.Any()) return;
 
-        var embed = new Embed(
-            Title: latestPost.Title,
-            Description: @$"Reported **{latestPost.TimeAgo}** for the following location: **{latestPost.Location}**
-
-Find out more at: {latestPost.Source}",
-            Thumbnail: latestPost.ImageUri is null ? null : new Optional<IEmbedThumbnail>(new EmbedThumbnail(latestPost.ImageUri)),
-            Footer: latestPost.Id is null ? null : new Optional<IEmbedFooter>(
-                new EmbedFooter(latestPost.Id)));
+        var embed = CreateEmbedFromLatestPost(latestPost);
 
         foreach (var knownGuild in ShortTermMemory.KnownGuilds)
         {
@@ -133,13 +126,25 @@ Find out more at: {latestPost.Source}",
             if (lastMessages.Entity
                     .FirstOrDefault(m => m.Embeds
                         .FirstOrDefault(e => e.Title.Value.GetHashCode() == latestPost.Title.GetHashCode()) is not null)
-                    is not null)
+                is not null)
                 break;
 
-            var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed>{ embed }));
+            var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
 
             _logger.LogTrace("Broadcast to {guildId}: {result}", knownGuild, result.Entity.ID);
         }
+    }
+
+    private static Embed CreateEmbedFromLatestPost(Post? latestPost)
+    {
+        return new Embed(
+            Title: latestPost.Title,
+            Description: @$"Reported **{latestPost.TimeAgo}** for the following location: **{latestPost.Location}**
+
+Find out more at: {latestPost.Source}",
+            Thumbnail: latestPost.ImageUri is null ? null : new Optional<IEmbedThumbnail>(new EmbedThumbnail(latestPost.ImageUri)),
+            Footer: latestPost.Id is null ? null : new Optional<IEmbedFooter>(
+                new EmbedFooter(latestPost.Id)));
     }
 
     public void Dispose()
