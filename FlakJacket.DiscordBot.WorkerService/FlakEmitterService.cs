@@ -106,20 +106,20 @@ public class FlakEmitterService : IDisposable
                     _logger.LogTrace("Connection re-established");
                 }
 
-                var latestPostHash = _lastReport.Posts.First().GetHashCode();
+                var latestPostHash = _lastReport?.Posts.First().GetHashCode();
                 _logger.LogTrace("Old Post: {lastPostHash} | New Post: {latestPostHash}", lastPostHash, latestPostHash);
 
                 if (lastPostHash == default)
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("Got initial content @ {lastUpdate}", lastUpdate);
-                    await BroadcastPostsAsync(_lastReport.Posts[..GetIndexUpTo(_lastReport.Posts, MAX_SEARCH_POSTS)]);
+                    await BroadcastPostsAsync(_lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, MAX_SEARCH_POSTS)]);
                 }
                 else if (latestPostHash != lastPostHash)
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("New update @ {lastUpdate}", lastUpdate);
-                    await BroadcastPostsAsync(_lastReport.Posts[..GetIndexUpTo(_lastReport.Posts, MAX_SEARCH_POSTS)]);
+                    await BroadcastPostsAsync(_lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, MAX_SEARCH_POSTS)]);
                 }
                 else
                 {
