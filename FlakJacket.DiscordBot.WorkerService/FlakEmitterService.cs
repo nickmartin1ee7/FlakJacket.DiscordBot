@@ -178,7 +178,7 @@ public class FlakEmitterService : IDisposable
                 }
                 else
                 {
-                    _logger.LogError("Failed to Broadcast post {post} to {guildId}", post.GetHashCode(), knownGuild); 
+                    _logger.LogError("Failed to Broadcast post {post} to {guildId} due to {error}", post.GetHashCode(), knownGuild, result.Error?.Message); 
                 }
             }
         }
