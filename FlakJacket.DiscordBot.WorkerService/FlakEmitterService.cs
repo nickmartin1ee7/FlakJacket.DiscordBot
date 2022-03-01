@@ -175,12 +175,11 @@ public class FlakEmitterService : IDisposable
         if (messages.IsSuccess && !messages.Entity.Any())
             return false;
 
-        var postHashCode = post.GetHashCode();
+        var postHashCode = post.GetHashCode().ToString();
 
         return messages.Entity
                 .Any(m => m.Embeds
-                    .Any(e =>
-                        e.Title.Value.ToUniformHashCode() == postHashCode));
+                    .Any(e => e.Footer.HasValue && e.Footer.Value.Text == postHashCode));
     }
 
     private static Embed CreateEmbedFrom(Post post)
@@ -189,10 +188,10 @@ public class FlakEmitterService : IDisposable
             Title: post.Title,
             Description: @$"Reported **{post.TimeAgo}** for the following location: **{post.Location}**
 
-Find out more at: {post.Source}",
+Find out more at: {post.Source} ({post.Id})",
             Video: post.VideoUri is null ? new Optional<IEmbedVideo>() : new EmbedVideo(post.VideoUri),
             Thumbnail: post.ImageUri is null ? new Optional<IEmbedThumbnail>() : new EmbedThumbnail(post.ImageUri),
-            Footer: new EmbedFooter(post.Id));
+            Footer: new EmbedFooter(post.GetHashCode().ToString()));
     }
 
     public void Dispose()

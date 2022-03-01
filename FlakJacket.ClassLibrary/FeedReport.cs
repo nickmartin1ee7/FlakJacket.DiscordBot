@@ -18,14 +18,15 @@ public class FeedReport
             var postNode = feedNode.ChildNodes[i];
             var id = postNode.Id;
             
-            Posts[i] = new Post(postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//div[contains(@class, 'title')]").InnerText)
+            Posts[i] = new Post(
+                postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//div[contains(@class, 'title')]")!.InnerText,
+                postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]").Attributes.First(a => a.Name == "href").Value)
             {
                 Id = id,
                 ImageUri = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//img[contains(@class, 'bs64')]")?.Attributes.FirstOrDefault(a => a.Name == "src")?.Value,
                 VideoUri = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//div[contains(@class, 'video')]//a")?.Attributes.FirstOrDefault(a => a.Name == "href")?.Value,
                 TimeAgo = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//span[contains(@class, 'date_add')]").InnerText,
-                Location = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]").InnerText,
-                Source = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]").Attributes.FirstOrDefault(a => a.Name == "href")?.Value
+                Location = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]").InnerText
             };
         }
     }
@@ -49,18 +50,19 @@ public class Post
 {
     public string Id { get; set; }
     public string Title { get; }
+    public string Source { get; }
     public string? TimeAgo { get; set; }
     public string? Location { get; set; }
-    public string? Source { get; set; }
     public string? ImageUri { get; set; }
     public string? VideoUri { get; set; }
 
-    public Post(string title)
+    public Post(string title, string source)
     {
         Title = title;
+        Source = source;
     }
 
-    public override int GetHashCode() => Title.ToUniformHashCode();
+    public override int GetHashCode() => Source.ToUniformHashCode();
 
     public override string ToString()
     {
