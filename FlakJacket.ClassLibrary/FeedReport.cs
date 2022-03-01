@@ -18,24 +18,13 @@ public class FeedReport
             var postNode = feedNode.ChildNodes[i];
             var id = postNode.Id;
             
-            var headerNode = postNode.FirstChild;
-            var imgUri = headerNode.SelectSingleNode("img")?.Attributes
-                .FirstOrDefault(a => a.Name == "src")?.Value;
-            var timeAgo = headerNode.SelectSingleNode("span")?.InnerText;
-            var location = headerNode.SelectSingleNode("div")?.InnerText;
-            var source = headerNode.SelectSingleNode("div")?.FirstChild.Attributes
-                .FirstOrDefault(a => a.Name == "href")?.Value;
-
-            var title = postNode.ChildNodes[1].InnerText;
-
-            Posts[i] = new Post
+            Posts[i] = new Post(postNode.SelectSingleNode("//div[contains(@class, 'title')]").InnerText)
             {
                 Id = id,
-                ImageUri = imgUri,
-                TimeAgo = timeAgo,
-                Location = location,
-                Title = title,
-                Source = source
+                ImageUri = postNode.SelectSingleNode("//img[contains(@class, 'bs64')]").Attributes.FirstOrDefault(a => a.Name == "src")?.Value,
+                TimeAgo = postNode.SelectSingleNode("//span[contains(@class, 'date_add')]").InnerText,
+                Location = postNode.SelectSingleNode("//a[contains(@class, 'comment-link')]").InnerText,
+                Source = postNode.SelectSingleNode("//a[contains(@class, 'comment-link')]").Attributes.FirstOrDefault(a => a.Name == "href")?.Value
             };
         }
     }
@@ -61,8 +50,13 @@ public class Post
     public string? ImageUri { get; set; }
     public string? TimeAgo { get; set; }
     public string? Location { get; set; }
-    public string Title { get; set; }
-    public string Source { get; set; }
+    public string? Source { get; set; }
+    public string Title { get; }
+
+    public Post(string title)
+    {
+        Title = title;
+    }
 
     public override int GetHashCode() => Title.ToUniformHashCode();
 
