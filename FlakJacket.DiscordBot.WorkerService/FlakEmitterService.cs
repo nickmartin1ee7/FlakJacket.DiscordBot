@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using FlakJacket.ClassLibrary;
@@ -16,6 +17,8 @@ namespace FlakJacket.DiscordBot.WorkerService;
 
 public class FlakEmitterService : IDisposable
 {
+    private const int MAX_TITLE_LENGTH = 256;
+    
     private readonly ILogger<FlakEmitterService> _logger;
     private readonly IDiscordRestGuildAPI _guildApi;
     private readonly IDiscordRestChannelAPI _channelApi;
@@ -39,6 +42,11 @@ public class FlakEmitterService : IDisposable
         _ds = ds;
         _delayTime = TimeSpan.Parse(settings.UpdateDelay);
     }
+
+
+    private static int GetEndingIndex(Post post) => post.Title.Length > MAX_TITLE_LENGTH
+        ? MAX_TITLE_LENGTH
+        : post.Title.Length;
 
     public void Start()
     {
@@ -178,19 +186,13 @@ public class FlakEmitterService : IDisposable
         return messages.Entity
                 .Any(m => m.Embeds
                     .Any(e =>
-                        e.Title.Value.ToUniformHashCode() == postHashCode));
+                        e.Title.Value[..GetEndingIndex(post)].ToUniformHashCode() == postHashCode));
     }
 
     private static Embed CreateEmbedFrom(Post post)
     {
-        const int MAX_TITLE_LENGTH = 256;
-        
-        var lastIdx = post.Title.Length > MAX_TITLE_LENGTH
-            ? MAX_TITLE_LENGTH
-            : post.Title.Length;
-
         return new Embed(
-            Title: post.Title[..lastIdx],
+            Title: post.Title[..GetEndingIndex(post)],
             Description: @$"Reported **{post.TimeAgo}** for the following location: **{post.Location}**
 
 Find out more at: {post.Source}",
