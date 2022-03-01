@@ -57,27 +57,8 @@ public class FlakEmitterService : IDisposable
 
         if (_lastReport is null || !_lastReport.Posts.Any())
             return;
-        var channels = await _guildApi.GetGuildChannelsAsync(guildId);
-        var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
 
-        if (feedChannel is null) return;
-        var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
-
-        foreach (var post in _lastReport.Posts.Reverse())
-        {
-            if (lastMessages.Entity
-                    .FirstOrDefault(m => m.Embeds
-                        .FirstOrDefault(e => e.Title.Value.ToUniformHashCode() == post.GetHashCode()) is not null)
-                is not null)
-            {
-                _logger.LogTrace("Post {existingPost} already present on channel {channel}", post.GetHashCode(), feedChannel);
-                return;
-            }
-
-            var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { CreateEmbedFrom(post) }));
-
-            _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", post.GetHashCode(), guildId, result.Entity.ID);
-        }
+        await BroadcastPostsAsync(guildId);
     }
 
     private async Task UpdateJob()
@@ -85,7 +66,7 @@ public class FlakEmitterService : IDisposable
         int? lastPostHash = null;
         var lastCallFaulted = false;
 
-        while (!_cts.IsCancellationRequested)
+        while (!_cts!.IsCancellationRequested)
         {
             try
             {
@@ -107,13 +88,13 @@ public class FlakEmitterService : IDisposable
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("Got initial content @ {lastUpdate}", lastUpdate);
-                    await BroadcastPostsAsync(_lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, _settings.MaxBroadcastPosts)]);
+                    await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
                 }
                 else if (latestPostHash != lastPostHash)
                 {
                     lastPostHash = latestPostHash;
                     _logger.LogInformation("New update @ {lastUpdate}", lastUpdate);
-                    await BroadcastPostsAsync(_lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, _settings.MaxBroadcastPosts)]);
+                    await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
                 }
                 else
                 {
@@ -137,15 +118,17 @@ public class FlakEmitterService : IDisposable
         }
     }
 
-    private static int GetIndexUpTo<T>(T[] arr, int maxIndex)
+    private static int GetIndexUpTo<T>(IReadOnlyCollection<T> arr, int maxIndex)
     {
-        return arr.Length > maxIndex ? maxIndex : arr.Length - 1;
+        return arr.Count > maxIndex ? maxIndex : arr.Count - 1;
     }
 
-    private async Task BroadcastPostsAsync(params Post?[] posts)
+    private async Task BroadcastPostsAsync(params Snowflake[] targetGuilds)
     {
-        if (!posts.Any()) return;
-        if (!ShortTermMemory.KnownGuilds.Any()) return;
+        var posts = _lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, _settings.MaxBroadcastPosts)];
+
+        if (posts is null || !posts.Any()) return;
+        if (!targetGuilds.Any()) return;
 
         foreach (var post in posts.Reverse())
         {
@@ -154,7 +137,7 @@ public class FlakEmitterService : IDisposable
 
             var embed = CreateEmbedFrom(post);
 
-            foreach (var knownGuild in ShortTermMemory.KnownGuilds)
+            foreach (var knownGuild in targetGuilds)
             {
                 var channels = await _guildApi.GetGuildChannelsAsync(knownGuild);
                 var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
@@ -178,16 +161,16 @@ public class FlakEmitterService : IDisposable
                 }
                 else
                 {
-                    _logger.LogError("Failed to Broadcast post {post} to {guildId} due to {error}", post.GetHashCode(), knownGuild, result.Error?.Message); 
+                    _logger.LogError("Failed to Broadcast post {post} to {guildId} due to {error}", post.GetHashCode(), knownGuild, result.Error?.Message);
                 }
             }
         }
     }
 
-    private static bool HasPostBeenEmitted(Post? post, Result<IReadOnlyList<IMessage>> messages)
+    private static bool HasPostBeenEmitted(Post post, Result<IReadOnlyList<IMessage>> messages)
     {
         // This will keep us from spamming servers if any issue finding previous posts
-        if (post?.Title is null || messages.IsSuccess && !messages.Entity.Any())
+        if (messages.IsSuccess && !messages.Entity.Any())
             return true;
 
         var postHashCode = post.GetHashCode();
@@ -198,7 +181,7 @@ public class FlakEmitterService : IDisposable
                         e.Title.Value.ToUniformHashCode() == postHashCode));
     }
 
-    private static Embed CreateEmbedFrom(Post? post)
+    private static Embed CreateEmbedFrom(Post post)
     {
         return new Embed(
             Title: post.Title,
