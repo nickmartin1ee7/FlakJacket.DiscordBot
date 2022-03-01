@@ -188,9 +188,9 @@ public class FlakEmitterService : IDisposable
             Description: @$"Reported **{post.TimeAgo}** for the following location: **{post.Location}**
 
 Find out more at: {post.Source}",
-            Thumbnail: post.ImageUri is null ? new Optional<IEmbedThumbnail>() : new Optional<IEmbedThumbnail>(new EmbedThumbnail(post.ImageUri)),
-            Footer: post.Id is null ? new Optional<IEmbedFooter>() : new Optional<IEmbedFooter>(
-                new EmbedFooter(post.Id)));
+            Video: post.VideoUri is null ? new Optional<IEmbedVideo>() : new EmbedVideo(post.VideoUri),
+            Thumbnail: post.ImageUri is null ? new Optional<IEmbedThumbnail>() : new EmbedThumbnail(post.ImageUri),
+            Footer: new EmbedFooter(post.Id));
     }
 
     public void Dispose()

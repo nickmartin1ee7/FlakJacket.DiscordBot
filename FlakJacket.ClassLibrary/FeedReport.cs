@@ -22,6 +22,7 @@ public class FeedReport
             {
                 Id = id,
                 ImageUri = postNode.SelectSingleNode("//img[contains(@class, 'bs64')]").Attributes.FirstOrDefault(a => a.Name == "src")?.Value,
+                VideoUri = postNode.SelectSingleNode("//div[contains(@class, 'video')]//a").Attributes.FirstOrDefault(a => a.Name == "href")?.Value,
                 TimeAgo = postNode.SelectSingleNode("//span[contains(@class, 'date_add')]").InnerText,
                 Location = postNode.SelectSingleNode("//a[contains(@class, 'comment-link')]").InnerText,
                 Source = postNode.SelectSingleNode("//a[contains(@class, 'comment-link')]").Attributes.FirstOrDefault(a => a.Name == "href")?.Value
@@ -46,12 +47,13 @@ public class FeedReport
 
 public class Post
 {
-    public string? Id { get; set; }
-    public string? ImageUri { get; set; }
+    public string Id { get; set; }
+    public string Title { get; }
     public string? TimeAgo { get; set; }
     public string? Location { get; set; }
     public string? Source { get; set; }
-    public string Title { get; }
+    public string? ImageUri { get; set; }
+    public string? VideoUri { get; set; }
 
     public Post(string title)
     {
@@ -69,6 +71,7 @@ public class Post
         sb.AppendLine($"Post Location: {Location}");
         sb.AppendLine($"Post Title: {Title}");
         sb.AppendLine($"Post Image URL: {ImageUri}");
+        sb.AppendLine($"Post Video URL: {VideoUri}");
         sb.AppendLine($"Post Source: {Source}");
 
         return sb.ToString();
