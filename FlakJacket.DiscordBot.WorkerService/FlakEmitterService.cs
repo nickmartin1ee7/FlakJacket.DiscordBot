@@ -73,7 +73,6 @@ public class FlakEmitterService : IDisposable
                 _logger.LogTrace("Downloading latest content...");
 
                 _lastReport = await _ds.GetAsync(_settings.SourceUri);
-                DateTime? lastUpdate = DateTime.Now;
 
                 if (lastCallFaulted)
                 {
@@ -87,19 +86,21 @@ public class FlakEmitterService : IDisposable
                 if (lastPostHash == default)
                 {
                     lastPostHash = latestPostHash;
-                    _logger.LogInformation("Got initial content @ {lastUpdate}", lastUpdate);
+                    _logger.LogInformation("Got initial content");
                     await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
                 }
                 else if (latestPostHash != lastPostHash)
                 {
                     lastPostHash = latestPostHash;
-                    _logger.LogInformation("New update @ {lastUpdate}", lastUpdate);
+                    _logger.LogInformation("New update");
                     await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
                 }
                 else
                 {
-                    _logger.LogTrace("No new content @ {lastUpdate}", lastUpdate);
+                    _logger.LogTrace("No new content");
                 }
+
+                _logger.LogInformation("Finished broadcasting");
             }
             catch (Exception e)
             {
