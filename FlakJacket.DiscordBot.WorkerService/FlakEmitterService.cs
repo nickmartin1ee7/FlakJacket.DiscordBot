@@ -169,9 +169,8 @@ public class FlakEmitterService : IDisposable
 
     private static bool HasPostBeenEmitted(Post post, Result<IReadOnlyList<IMessage>> messages)
     {
-        // This will keep us from spamming servers if any issue finding previous posts
         if (messages.IsSuccess && !messages.Entity.Any())
-            return true;
+            return false;
 
         var postHashCode = post.GetHashCode();
 
@@ -183,8 +182,14 @@ public class FlakEmitterService : IDisposable
 
     private static Embed CreateEmbedFrom(Post post)
     {
+        const int MAX_TITLE_LENGTH = 256;
+        
+        var lastIdx = post.Title.Length > MAX_TITLE_LENGTH
+            ? MAX_TITLE_LENGTH
+            : post.Title.Length;
+
         return new Embed(
-            Title: post.Title,
+            Title: post.Title[..lastIdx],
             Description: @$"Reported **{post.TimeAgo}** for the following location: **{post.Location}**
 
 Find out more at: {post.Source}",

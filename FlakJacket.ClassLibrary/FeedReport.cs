@@ -18,14 +18,14 @@ public class FeedReport
             var postNode = feedNode.ChildNodes[i];
             var id = postNode.Id;
             
-            Posts[i] = new Post(postNode.SelectSingleNode("//div[contains(@class, 'title')]").InnerText)
+            Posts[i] = new Post(postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//div[contains(@class, 'title')]").InnerText)
             {
                 Id = id,
-                ImageUri = postNode.SelectSingleNode("//img[contains(@class, 'bs64')]").Attributes.FirstOrDefault(a => a.Name == "src")?.Value,
-                VideoUri = postNode.SelectSingleNode("//div[contains(@class, 'video')]//a").Attributes.FirstOrDefault(a => a.Name == "href")?.Value,
-                TimeAgo = postNode.SelectSingleNode("//span[contains(@class, 'date_add')]").InnerText,
-                Location = postNode.SelectSingleNode("//a[contains(@class, 'comment-link')]").InnerText,
-                Source = postNode.SelectSingleNode("//a[contains(@class, 'comment-link')]").Attributes.FirstOrDefault(a => a.Name == "href")?.Value
+                ImageUri = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//img[contains(@class, 'bs64')]")?.Attributes.FirstOrDefault(a => a.Name == "src")?.Value,
+                VideoUri = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//div[contains(@class, 'video')]//a")?.Attributes.FirstOrDefault(a => a.Name == "href")?.Value,
+                TimeAgo = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//span[contains(@class, 'date_add')]").InnerText,
+                Location = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]").InnerText,
+                Source = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]").Attributes.FirstOrDefault(a => a.Name == "href")?.Value
             };
         }
     }
