@@ -18,8 +18,6 @@ public class DataSource : IDisposable
         var result = await _client.GetAsync(uri);
         var html = await result.Content.ReadAsStringAsync();
 
-        _logger.LogTrace("Data from {uri}: {html}", uri, html);
-
         if (!result.IsSuccessStatusCode || string.IsNullOrWhiteSpace(html))
         {
             throw new Exception($"No content received. Error ({result.StatusCode}) {result.ReasonPhrase}");
@@ -28,7 +26,9 @@ public class DataSource : IDisposable
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
         var targetFeedNode = doc.GetElementbyId("feedler");
-        
+
+        await File.WriteAllTextAsync("last-report.html", targetFeedNode.WriteTo());
+
         return new FeedReport(targetFeedNode);
     }
 
