@@ -5,13 +5,7 @@ namespace FlakJacket.ClassLibrary;
 
 public class DataSource : IDisposable
 {
-    private readonly ILogger<DataSource> _logger;
     private readonly HttpClient _client = new();
-
-    public DataSource(ILogger<DataSource> logger)
-    {
-        _logger = logger;
-    }
 
     public async Task<FeedReport> GetAsync(string uri)
     {
