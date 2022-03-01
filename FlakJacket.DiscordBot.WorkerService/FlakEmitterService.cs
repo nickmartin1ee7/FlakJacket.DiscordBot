@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using FlakJacket.ClassLibrary;
@@ -17,7 +16,7 @@ namespace FlakJacket.DiscordBot.WorkerService;
 
 public class FlakEmitterService : IDisposable
 {
-    private const int MAX_TITLE_LENGTH = 256;
+    private const int MAX_EMBED_LENGTH = 256;
     
     private readonly ILogger<FlakEmitterService> _logger;
     private readonly IDiscordRestGuildAPI _guildApi;
@@ -42,12 +41,7 @@ public class FlakEmitterService : IDisposable
         _ds = ds;
         _delayTime = TimeSpan.Parse(settings.UpdateDelay);
     }
-
-
-    private static int GetEndingIndex(Post post) => post.Title.Length > MAX_TITLE_LENGTH
-        ? MAX_TITLE_LENGTH
-        : post.Title.Length;
-
+    
     public void Start()
     {
         if (_cts is not null && !_cts.IsCancellationRequested)
@@ -141,7 +135,7 @@ public class FlakEmitterService : IDisposable
 
         foreach (var post in posts.Reverse())
         {
-            if (post is null)
+            if (post is null || post.Title.Length > MAX_EMBED_LENGTH)
                 continue;
 
             var embed = CreateEmbedFrom(post);
@@ -186,13 +180,13 @@ public class FlakEmitterService : IDisposable
         return messages.Entity
                 .Any(m => m.Embeds
                     .Any(e =>
-                        e.Title.Value[..GetEndingIndex(post)].ToUniformHashCode() == postHashCode));
+                        e.Title.Value.ToUniformHashCode() == postHashCode));
     }
 
     private static Embed CreateEmbedFrom(Post post)
     {
         return new Embed(
-            Title: post.Title[..GetEndingIndex(post)],
+            Title: post.Title,
             Description: @$"Reported **{post.TimeAgo}** for the following location: **{post.Location}**
 
 Find out more at: {post.Source}",
