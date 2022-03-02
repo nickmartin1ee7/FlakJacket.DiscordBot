@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FlakJacket.ClassLibrary;
@@ -101,8 +102,6 @@ public class FlakEmitterService : IDisposable
                 {
                     _logger.LogTrace("No new content");
                 }
-
-                _logger.LogInformation("Finished broadcasting");
             }
             catch (Exception e)
             {
@@ -126,12 +125,12 @@ public class FlakEmitterService : IDisposable
         return arr.Count > maxIndex ? maxIndex : arr.Count - 1;
     }
 
-    private async Task BroadcastPostsAsync(params Snowflake[] targetGuilds)
+    private Task BroadcastPostsAsync(params Snowflake[] targetGuilds)
     {
         var posts = _lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, _settings.MaxBroadcastPosts)];
 
-        if (posts is null || !posts.Any()) return;
-        if (!targetGuilds.Any()) return;
+        if (posts is null || !posts.Any()) return Task.CompletedTask;
+        if (!targetGuilds.Any()) return Task.CompletedTask;
 
         foreach (var post in posts.Reverse())
         {
@@ -140,19 +139,19 @@ public class FlakEmitterService : IDisposable
 
             var embed = CreateEmbedFrom(post);
 
-            foreach (var knownGuild in targetGuilds)
+            _ = Parallel.ForEach(targetGuilds, async knownGuild =>
             {
                 var channels = await _guildApi.GetGuildChannelsAsync(knownGuild);
-                var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
+                var feedChannel = channels.Entity?.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
 
-                if (feedChannel is null) continue;
+                if (feedChannel is null) return;
 
                 var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
 
                 if (HasPostBeenEmitted(post, lastMessages))
                 {
                     _logger.LogTrace("Post {existingPost} already present on channel {channel}", post.GetHashCode(), feedChannel);
-                    continue;
+                    return;
                 }
 
                 var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
@@ -166,8 +165,16 @@ public class FlakEmitterService : IDisposable
                 {
                     _logger.LogError("Failed to Broadcast post {post} to {guildId} due to {error}", post.GetHashCode(), knownGuild, result.Error?.Message);
                 }
+            });
+
+            // If last post to go out
+            if (post.GetHashCode() == posts.First().GetHashCode())
+            {
+                _logger.LogInformation("Finished broadcasting");
             }
         }
+
+        return Task.CompletedTask;
     }
 
     private static bool HasPostBeenEmitted(Post post, Result<IReadOnlyList<IMessage>> messages)
@@ -184,11 +191,18 @@ public class FlakEmitterService : IDisposable
 
     private static Embed CreateEmbedFrom(Post post)
     {
+        var sb = new StringBuilder();
+
+        sb.AppendLine($"Reported **{post.TimeAgo}** for the following location: **{post.Location}**");
+        sb.AppendLine();
+        sb.AppendLine($"Find out more at: {post.Source} ({post.Id})");
+        
+        if (post.VideoUri is not null)
+            sb.AppendLine($"Video: {post.VideoUri}");
+
         return new Embed(
             Title: post.Title,
-            Description: @$"Reported **{post.TimeAgo}** for the following location: **{post.Location}**
-
-Find out more at: {post.Source} ({post.Id})",
+            Description: sb.ToString(),
             Video: post.VideoUri is null ? new Optional<IEmbedVideo>() : new EmbedVideo(post.VideoUri),
             Thumbnail: post.ImageUri is null ? new Optional<IEmbedThumbnail>() : new EmbedThumbnail(post.ImageUri),
             Footer: new EmbedFooter(post.GetHashCode().ToString()));
