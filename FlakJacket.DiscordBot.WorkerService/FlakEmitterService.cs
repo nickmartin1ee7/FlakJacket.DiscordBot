@@ -40,7 +40,7 @@ public class FlakEmitterService : IDisposable
         _ds = ds;
         _delayTime = TimeSpan.Parse(settings.UpdateDelay);
     }
-    
+
     public void Start()
     {
         if (_cts is not null && !_cts.IsCancellationRequested)
@@ -130,22 +130,22 @@ public class FlakEmitterService : IDisposable
         if (posts is null || !posts.Any()) return Task.CompletedTask;
         if (!targetGuilds.Any()) return Task.CompletedTask;
 
-        foreach (var post in posts.OrderBy(p => p.TimeAgo))
+        var embeds = posts.OrderByDescending(p => p.TimeAgo).Select(CreateEmbedFrom).ToArray();
+
+        _ = Parallel.ForEach(targetGuilds, async knownGuild =>
         {
-            var embed = CreateEmbedFrom(post);
+            var channels = await _guildApi.GetGuildChannelsAsync(knownGuild);
+            var feedChannel = channels.Entity?.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
 
-            _ = Parallel.ForEach(targetGuilds, async knownGuild =>
+            if (feedChannel is null) return;
+
+            var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
+
+            foreach (var embed in embeds)
             {
-                var channels = await _guildApi.GetGuildChannelsAsync(knownGuild);
-                var feedChannel = channels.Entity?.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
-
-                if (feedChannel is null) return;
-
-                var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
-
-                if (HasPostBeenEmitted(post, lastMessages))
+                if (HasPostBeenEmitted(embed, lastMessages))
                 {
-                    _logger.LogTrace("Post {existingPost} already present on channel {channel}", post.GetHashCode(), feedChannel);
+                    _logger.LogTrace("Post {existingPost} already present on channel {channel}", embed.GetHashCode(), feedChannel);
                     return;
                 }
 
@@ -153,35 +153,29 @@ public class FlakEmitterService : IDisposable
 
                 if (result.IsSuccess)
                 {
-                    _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", post.GetHashCode(), knownGuild,
+                    _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", embed.GetHashCode(), knownGuild,
                         result.Entity.ID);
                 }
                 else
                 {
-                    _logger.LogError("Failed to Broadcast post {post} to {guildId} due to {error}", post.GetHashCode(), knownGuild, result.Error?.Message);
+                    _logger.LogError("Failed to Broadcast post {post} to {guildId} due to {error}", embed.GetHashCode(), knownGuild, result.Error?.Message);
                 }
-            });
-
-            // If last post to go out
-            if (post.GetHashCode() == posts.First().GetHashCode())
-            {
-                _logger.LogInformation("Finished broadcasting");
             }
-        }
+        });
 
         return Task.CompletedTask;
     }
 
-    private static bool HasPostBeenEmitted(Post post, Result<IReadOnlyList<IMessage>> messages)
+    private static bool HasPostBeenEmitted(IEmbed embed, Result<IReadOnlyList<IMessage>> messages)
     {
         if (messages.IsSuccess && !messages.Entity.Any())
             return false;
 
-        var postHashCode = post.GetHashCode().ToString();
+        var embedHash = embed.Footer.Value.Text;
 
         return messages.Entity
                 .Any(m => m.Embeds
-                    .Any(e => e.Footer.HasValue && e.Footer.Value.Text == postHashCode));
+                    .Any(e => e.Footer.HasValue && e.Footer.Value.Text == embedHash));
     }
 
     private static Embed CreateEmbedFrom(Post post)
@@ -191,7 +185,7 @@ public class FlakEmitterService : IDisposable
         sb.AppendLine($"Reported **{post.TimeAgo}** for the following location: **{post.Location}**");
         sb.AppendLine();
         sb.AppendLine($"Find out more at: {post.Source} ({post.Id})");
-        
+
         if (post.VideoUri is not null)
             sb.AppendLine($"Video: {post.VideoUri}");
 
