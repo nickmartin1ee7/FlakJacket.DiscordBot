@@ -17,8 +17,6 @@ namespace FlakJacket.DiscordBot.WorkerService;
 
 public class FlakEmitterService : IDisposable
 {
-    private const int MAX_EMBED_LENGTH = 256;
-    
     private readonly ILogger<FlakEmitterService> _logger;
     private readonly IDiscordRestGuildAPI _guildApi;
     private readonly IDiscordRestChannelAPI _channelApi;
@@ -132,11 +130,8 @@ public class FlakEmitterService : IDisposable
         if (posts is null || !posts.Any()) return Task.CompletedTask;
         if (!targetGuilds.Any()) return Task.CompletedTask;
 
-        foreach (var post in posts.Reverse())
+        foreach (var post in posts.OrderBy(p => p.TimeAgo))
         {
-            if (post is null || post.Title.Length > MAX_EMBED_LENGTH)
-                continue;
-
             var embed = CreateEmbedFrom(post);
 
             _ = Parallel.ForEach(targetGuilds, async knownGuild =>

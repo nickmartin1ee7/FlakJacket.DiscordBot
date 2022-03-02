@@ -1,10 +1,13 @@
 ﻿using System.Text;
 using HtmlAgilityPack;
+using Humanizer;
 
 namespace FlakJacket.ClassLibrary;
 
 public class FeedReport
 {
+    private const int MAX_EMBED_LENGTH = 256;
+
     public FeedReport(HtmlNode feedNode)
     {
         Posts = new Post[feedNode.ChildNodes.Count];
@@ -28,6 +31,11 @@ public class FeedReport
                 TimeAgo = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//span[contains(@class, 'date_add')]").InnerText,
                 Location = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]").InnerText
             };
+
+            if (Posts[i].Title.Length > MAX_EMBED_LENGTH)
+            {
+                Posts[i].Title.Truncate(MAX_EMBED_LENGTH-3, "...", Truncator.FixedNumberOfCharacters);
+            }
         }
     }
 
