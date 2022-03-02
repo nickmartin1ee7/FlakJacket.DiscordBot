@@ -1,13 +1,9 @@
-﻿using System.Text;
-using HtmlAgilityPack;
-using Humanizer;
+﻿using HtmlAgilityPack;
 
 namespace FlakJacket.ClassLibrary;
 
 public class FeedReport
 {
-    private const int MAX_EMBED_LENGTH = 256;
-
     public FeedReport(HtmlNode feedNode)
     {
         Posts = new Post[feedNode.ChildNodes.Count];
@@ -20,8 +16,8 @@ public class FeedReport
         {
             var postNode = feedNode.ChildNodes[i];
             var id = postNode.Id;
-            
-            Posts[i] = new Post(
+
+            var newPost = new Post(
                 postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//div[contains(@class, 'title')]")!.InnerText,
                 postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]")!.Attributes.First(a => a.Name == "href").Value)
             {
@@ -32,30 +28,17 @@ public class FeedReport
                 Location = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]").InnerText
             };
 
-            if (Posts[i].Title.Length > MAX_EMBED_LENGTH)
-            {
-                Posts[i].Title.Truncate(MAX_EMBED_LENGTH-3, "...", Truncator.FixedNumberOfCharacters);
-            }
+            Posts[i] = newPost;
         }
     }
 
     public Post[] Posts { get; set; }
-
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-
-        foreach (var post in Posts)
-        {
-            sb.AppendLine(post.ToString());
-        }
-
-        return sb.ToString();
-    }
 }
 
-public class Post
+public record Post
 {
+    private const int MAX_TITLE_LENGTH = 256;
+
     public string Id { get; set; }
     public string Title { get; }
     public string Source { get; }
@@ -66,24 +49,15 @@ public class Post
 
     public Post(string title, string source)
     {
-        Title = title;
         Source = source;
+
+        if (title.Length > MAX_TITLE_LENGTH)
+        {
+            title = title[..(MAX_TITLE_LENGTH - 3)] + "...";
+        }
+
+        Title = title;
     }
 
     public override int GetHashCode() => Source.ToUniformHashCode();
-
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-
-        sb.AppendLine($"Post Id: {Id}");
-        sb.AppendLine($"Post Age: {TimeAgo}");
-        sb.AppendLine($"Post Location: {Location}");
-        sb.AppendLine($"Post Title: {Title}");
-        sb.AppendLine($"Post Image URL: {ImageUri}");
-        sb.AppendLine($"Post Video URL: {VideoUri}");
-        sb.AppendLine($"Post Source: {Source}");
-
-        return sb.ToString();
-    }
 }
