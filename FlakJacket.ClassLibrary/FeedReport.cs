@@ -20,7 +20,7 @@ public class FeedReport
             
             Posts[i] = new Post(
                 postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//div[contains(@class, 'title')]")!.InnerText,
-                postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'source-link')]")!.Attributes.First(a => a.Name == "href").Value)
+                postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]")!.Attributes.First(a => a.Name == "href").Value)
             {
                 Id = id,
                 ImageUri = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//img[contains(@class, 'bs64')]")?.Attributes.FirstOrDefault(a => a.Name == "src")?.Value,
