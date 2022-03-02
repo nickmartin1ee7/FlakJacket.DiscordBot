@@ -64,7 +64,7 @@ public class FlakEmitterService : IDisposable
 
     private async Task UpdateJob()
     {
-        int? lastPostHash = null;
+        string lastPostIdentifier = null;
         var lastCallFaulted = false;
 
         while (!_cts!.IsCancellationRequested)
@@ -81,18 +81,18 @@ public class FlakEmitterService : IDisposable
                     _logger.LogTrace("Connection re-established");
                 }
 
-                var latestPostHash = _lastReport?.Posts.First().GetHashCode();
-                _logger.LogTrace("Old Post: {lastPostHash} | New Post: {latestPostHash}", lastPostHash, latestPostHash);
+                var latestIdentifier = _lastReport?.Posts.First().CalculateIdentifier();
+                _logger.LogTrace("Old Post: {lastPostIdentifier} | New Post: {latestPostIdentifier}", lastPostIdentifier, latestIdentifier);
 
-                if (lastPostHash == default)
+                if (lastPostIdentifier == default)
                 {
-                    lastPostHash = latestPostHash;
+                    lastPostIdentifier = latestIdentifier;
                     _logger.LogInformation("Got initial content");
                     await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
                 }
-                else if (latestPostHash != lastPostHash)
+                else if (latestIdentifier != lastPostIdentifier)
                 {
-                    lastPostHash = latestPostHash;
+                    lastPostIdentifier = latestIdentifier;
                     _logger.LogInformation("New update");
                     await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
                 }
@@ -141,24 +141,32 @@ public class FlakEmitterService : IDisposable
 
             var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
 
-            foreach (var embed in embeds)
+            for (var i = 0; i < embeds.Length; i++)
             {
-                if (HasPostBeenEmitted(embed, lastMessages))
-                {
-                    _logger.LogTrace("Post {existingPost} already present on channel {channel}", embed.GetHashCode(), feedChannel);
-                    return;
-                }
+                var embed = embeds[i];
+                var post = posts[i];
+                var postIdentifier = post.CalculateIdentifier();
 
-                var result = await _channelApi.CreateMessageAsync(feedChannel.ID, embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
-
-                if (result.IsSuccess)
+                if (HasPostBeenEmitted(postIdentifier, lastMessages))
                 {
-                    _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", embed.GetHashCode(), knownGuild,
-                        result.Entity.ID);
+                    _logger.LogTrace("Post {existingPost} already present on channel {channel}", postIdentifier,
+                        feedChannel);
                 }
                 else
                 {
-                    _logger.LogError("Failed to Broadcast post {post} to {guildId} due to {error}", embed.GetHashCode(), knownGuild, result.Error?.Message);
+                    var result = await _channelApi.CreateMessageAsync(feedChannel.ID,
+                        embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
+
+                    if (result.IsSuccess)
+                    {
+                        _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", postIdentifier, knownGuild,
+                            result.Entity.ID);
+                    }
+                    else
+                    {
+                        _logger.LogError("Failed to Broadcast post {post} to {guildId} due to {error}", postIdentifier,
+                            knownGuild, result.Error?.Message);
+                    }
                 }
             }
         });
@@ -166,16 +174,15 @@ public class FlakEmitterService : IDisposable
         return Task.CompletedTask;
     }
 
-    private static bool HasPostBeenEmitted(IEmbed embed, Result<IReadOnlyList<IMessage>> messages)
+    private static bool HasPostBeenEmitted(string postIdentifier, Result<IReadOnlyList<IMessage>> messages)
     {
         if (messages.IsSuccess && !messages.Entity.Any())
             return false;
 
-        var embedHash = embed.Footer.Value.Text;
-
         return messages.Entity
-                .Any(m => m.Embeds
-                    .Any(e => e.Footer.HasValue && e.Footer.Value.Text == embedHash));
+            .SelectMany(m => m.Embeds)
+            .Any(e =>
+                e.Footer.HasValue && e.Footer.Value.Text == postIdentifier);
     }
 
     private static Embed CreateEmbedFrom(Post post)
@@ -194,7 +201,7 @@ public class FlakEmitterService : IDisposable
             Description: sb.ToString(),
             Video: post.VideoUri is null ? new Optional<IEmbedVideo>() : new EmbedVideo(post.VideoUri),
             Thumbnail: post.ImageUri is null ? new Optional<IEmbedThumbnail>() : new EmbedThumbnail(post.ImageUri),
-            Footer: new EmbedFooter(post.GetHashCode().ToString()));
+            Footer: new EmbedFooter(post.CalculateIdentifier()));
     }
 
     public void Dispose()

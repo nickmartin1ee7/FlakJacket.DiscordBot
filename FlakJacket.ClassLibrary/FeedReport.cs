@@ -1,4 +1,6 @@
-﻿using HtmlAgilityPack;
+﻿using System.Security.Cryptography;
+using System.Text;
+using HtmlAgilityPack;
 
 namespace FlakJacket.ClassLibrary;
 
@@ -57,7 +59,13 @@ public record Post
         }
 
         Title = title;
+
     }
 
-    public override int GetHashCode() => Source.ToUniformHashCode();
+    public string CalculateIdentifier()
+    {
+        return Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(Source)));
+    }
+
+
 }
