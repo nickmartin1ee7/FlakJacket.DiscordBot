@@ -11,6 +11,7 @@ using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Objects;
 using Remora.Rest.Core;
+using Remora.Rest.Results;
 using Remora.Results;
 
 namespace FlakJacket.DiscordBot.WorkerService;
@@ -64,52 +65,41 @@ public class FlakEmitterService : IDisposable
 
     private async Task UpdateJob()
     {
-        string lastPostIdentifier = null;
         var lastCallFaulted = false;
 
         while (!_cts!.IsCancellationRequested)
         {
-            try
+            if (ShortTermMemory.KnownGuilds.Any())
             {
-                _logger.LogTrace("Downloading latest content...");
-
-                _lastReport = await _ds.GetAsync(_settings.SourceUri);
-
-                if (lastCallFaulted)
+                try
                 {
-                    lastCallFaulted = false;
-                    _logger.LogTrace("Connection re-established");
-                }
+                    _logger.LogTrace("Downloading latest content...");
 
-                var latestIdentifier = _lastReport?.Posts.First().CalculateIdentifier();
-                _logger.LogTrace("Old Post: {lastPostIdentifier} | New Post: {latestPostIdentifier}", lastPostIdentifier, latestIdentifier);
+                    _lastReport = await _ds.GetAsync(_settings.SourceUri);
 
-                if (lastPostIdentifier == default)
-                {
-                    lastPostIdentifier = latestIdentifier;
-                    _logger.LogInformation("Got initial content");
+                    if (lastCallFaulted)
+                    {
+                        lastCallFaulted = false;
+                        _logger.LogTrace("Connection re-established");
+                    }
+
                     await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
+
                 }
-                else if (latestIdentifier != lastPostIdentifier)
+                catch (Exception e)
                 {
-                    lastPostIdentifier = latestIdentifier;
-                    _logger.LogInformation("New update");
-                    await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
-                }
-                else
-                {
-                    _logger.LogTrace("No new content");
+                    lastCallFaulted = true;
+
+                    _logger.LogError(new EventId(e.HResult), e, e.Message);
+                    _logger.LogTrace("Retrying in {_delayTime}...", _delayTime);
+
+                    await Task.Delay(_delayTime);
+                    continue;
                 }
             }
-            catch (Exception e)
+            else
             {
-                lastCallFaulted = true;
-
-                _logger.LogError(new EventId(e.HResult), e, e.Message);
-                _logger.LogTrace("Retrying in {_delayTime}...", _delayTime);
-
-                await Task.Delay(_delayTime);
-                continue;
+                _logger.LogInformation("No guilds to broadcast to");
             }
 
             _logger.LogTrace("Updating in {_delayTime} @ {nextUpdate}", _delayTime, DateTime.Now.Add(_delayTime));
@@ -125,64 +115,72 @@ public class FlakEmitterService : IDisposable
 
     private Task BroadcastPostsAsync(params Snowflake[] targetGuilds)
     {
-        var posts = _lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, _settings.MaxBroadcastPosts)];
+        var rangeOfPosts = _lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, _settings.MaxBroadcastPosts)]
+            .OrderByDescending(p => p.TimeAgo)
+            .ToArray();
 
-        if (posts is null || !posts.Any()) return Task.CompletedTask;
+        if (rangeOfPosts is null || !rangeOfPosts.Any()) return Task.CompletedTask;
         if (!targetGuilds.Any()) return Task.CompletedTask;
 
-        var embeds = posts.OrderByDescending(p => p.TimeAgo).Select(CreateEmbedFrom).ToArray();
-
+        var groupedPostsAndEmbeds = rangeOfPosts.Zip(rangeOfPosts.Select(CreateEmbedFrom), (post, embed) =>
+            new Tuple<Post, Embed>(post, embed));
+        
         _ = Parallel.ForEach(targetGuilds, async knownGuild =>
         {
-            var channels = await _guildApi.GetGuildChannelsAsync(knownGuild);
-            var feedChannel = channels.Entity?.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
+            var guildChannels = await _guildApi.GetGuildChannelsAsync(knownGuild);
+            var feedChannel = guildChannels.Entity?.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
 
-            if (feedChannel is null) return;
+            if (feedChannel is null)
+            {
+                _logger.LogTrace("Guild {guildId} has not been set up", knownGuild);
+                return;
+            }
 
             var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
 
-            for (var i = 0; i < embeds.Length; i++)
-            {
-                var embed = embeds[i];
-                var post = posts[i];
-                var postIdentifier = post.CalculateIdentifier();
+            var newEmbeds = groupedPostsAndEmbeds
+                .Where(g => !HasPostBeenEmitted(g.Item1.CalculateIdentifier(), lastMessages))
+                .Select(g => g.Item2)
+                .ToArray();
 
-                if (HasPostBeenEmitted(postIdentifier, lastMessages))
+            if (newEmbeds.Any())
+            {
+                var result = await _channelApi.CreateMessageAsync(feedChannel.ID,
+                    embeds: new Optional<IReadOnlyList<IEmbed>>(newEmbeds));
+
+                if (result.IsSuccess)
                 {
-                    _logger.LogTrace("Post {existingPost} already present on channel {channel}", postIdentifier,
-                        feedChannel);
+                    _logger.LogTrace("Broadcast {postCount} posts to guild {guildId}", result.Entity.Embeds.Count,
+                        knownGuild);
                 }
                 else
                 {
-                    var result = await _channelApi.CreateMessageAsync(feedChannel.ID,
-                        embeds: new Optional<IReadOnlyList<IEmbed>>(new List<IEmbed> { embed }));
-
-                    if (result.IsSuccess)
-                    {
-                        _logger.LogTrace("Broadcast post {post} to {guildId}: {result}", postIdentifier, knownGuild,
-                            result.Entity.ID);
-                    }
-                    else
-                    {
-                        _logger.LogError("Failed to Broadcast post {post} to {guildId} due to {error}", postIdentifier,
-                            knownGuild, result.Error?.Message);
-                    }
+                    _logger.LogError("Failed to Broadcast {postCount} posts to guild {guildId}: {error}", newEmbeds.Length,
+                        knownGuild, (result.Error as RestResultError<RestError>)?.Error.Message);
                 }
+            }
+            else
+            {
+                _logger.LogTrace("Guild {guildId} is already up to date", knownGuild);
             }
         });
 
         return Task.CompletedTask;
     }
 
-    private static bool HasPostBeenEmitted(string postIdentifier, Result<IReadOnlyList<IMessage>> messages)
+    private static bool HasPostBeenEmitted(string newPostIdentifier, Result<IReadOnlyList<IMessage>> messages)
     {
         if (messages.IsSuccess && !messages.Entity.Any())
             return false;
 
-        return messages.Entity
-            .SelectMany(m => m.Embeds)
-            .Any(e =>
-                e.Footer.HasValue && e.Footer.Value.Text == postIdentifier);
+        var existingMessageIdentifiers = messages.Entity
+                .SelectMany(m => m.Embeds)
+                .Where(e => e.Footer.HasValue)
+                .Select(e => e.Footer.Value.Text);
+        
+        return existingMessageIdentifiers
+            .Any(existingIdentifier =>
+                existingIdentifier == newPostIdentifier);
     }
 
     private static Embed CreateEmbedFrom(Post post)
@@ -191,15 +189,15 @@ public class FlakEmitterService : IDisposable
 
         sb.AppendLine($"Reported **{post.TimeAgo}** for the following location: **{post.Location}**");
         sb.AppendLine();
-        sb.AppendLine($"Find out more at: {post.Source} ({post.Id})");
+        sb.AppendLine($"Find out more at: {post.Source}");
 
         if (post.VideoUri is not null)
             sb.AppendLine($"Video: {post.VideoUri}");
 
         return new Embed(
+            Author: new Optional<IEmbedAuthor>(new EmbedAuthor(post.Id)),
             Title: post.Title,
             Description: sb.ToString(),
-            Video: post.VideoUri is null ? new Optional<IEmbedVideo>() : new EmbedVideo(post.VideoUri),
             Thumbnail: post.ImageUri is null ? new Optional<IEmbedThumbnail>() : new EmbedThumbnail(post.ImageUri),
             Footer: new EmbedFooter(post.CalculateIdentifier()));
     }

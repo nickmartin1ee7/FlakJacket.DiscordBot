@@ -66,6 +66,4 @@ public record Post
     {
         return Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(Source)));
     }
-
-
 }
