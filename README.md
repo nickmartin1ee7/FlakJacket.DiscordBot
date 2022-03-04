@@ -5,6 +5,6 @@ The inspiration came from the liveuamap website having the latest updates, but f
 
 Source: https://liveuamap.com/
 
-Invite Link: https://discord.com/api/oauth2/authorize?client_id=947644599738966156&permissions=65552&scope=bot%20applications.commands
+Invite Link: https://discord.com/api/oauth2/authorize?client_id=947644599738966156&permissions=83984&scope=bot%20applications.commands
 
 ![Screenshot showing the profile for FlakJacket discord bot](https://i.imgur.com/RNCApzQ.png)
