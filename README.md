@@ -7,4 +7,4 @@ Source: https://liveuamap.com/
 
 Invite Link: https://discord.com/api/oauth2/authorize?client_id=947644599738966156&permissions=83984&scope=bot%20applications.commands
 
-![Screenshot showing the profile for FlakJacket discord bot](https://i.imgur.com/RNCApzQ.png)
+![Screenshot showing the profile for FlakJacket discord bot](![image](https://user-images.githubusercontent.com/58752614/156694168-c075b0fa-1bb7-4794-9c9a-d638ef108e85.png)
