@@ -12,7 +12,7 @@ services:
         - DiscordSettings__ShardManagerUri=http://shardmanager
         - DiscordSettings__SetupChannelName=flakjacket
         - DiscordSettings__UpdateDelay=00:00:30
-        - DiscordSettings__MaxBroadcastPosts=70
+        - DiscordSettings__MaxBroadcastPosts=10
         - DiscordSettings__SourceUri=https://liveuamap.com
         - LoggerConfig__ServerUri=http://seq
         - LoggerConfig__ApiKey
