@@ -6,10 +6,17 @@ namespace FlakJacket.ClassLibrary;
 
 public class FeedReport
 {
-    public FeedReport(HtmlNode feedNode)
+    public FeedReport(HtmlNode? feedNode)
     {
-        Posts = new Post[feedNode.ChildNodes.Count];
-        ParseFeedNode(feedNode);
+        if (feedNode is null)
+        {
+            Posts = Array.Empty<Post>();
+        }
+        else
+        {
+            Posts = new Post[feedNode.ChildNodes.Count];
+            ParseFeedNode(feedNode);
+        }
     }
 
     private void ParseFeedNode(HtmlNode feedNode)

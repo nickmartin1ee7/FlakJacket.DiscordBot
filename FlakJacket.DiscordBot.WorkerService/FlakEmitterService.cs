@@ -83,7 +83,10 @@ public class FlakEmitterService : IDisposable
                         _logger.LogTrace("Connection re-established");
                     }
 
-                    await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
+                    if (_lastReport.Posts.Any())
+                    {
+                        await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
+                    }
 
                 }
                 catch (Exception e)
@@ -115,15 +118,18 @@ public class FlakEmitterService : IDisposable
 
     private Task BroadcastPostsAsync(params Snowflake[] targetGuilds)
     {
-        var rangeOfPosts = _lastReport?.Posts[..GetIndexUpTo(_lastReport?.Posts, _settings.MaxBroadcastPosts)]
+        var rangeOfPosts = _lastReport!.Posts[..GetIndexUpTo(_lastReport.Posts, _settings.MaxBroadcastPosts)]
             .OrderByDescending(p => p.TimeAgo)
             .ToArray();
 
-        if (rangeOfPosts is null || !rangeOfPosts.Any()) return Task.CompletedTask;
-        if (!targetGuilds.Any()) return Task.CompletedTask;
+        if (!rangeOfPosts.Any() || !targetGuilds.Any())
+        {
+            return Task.CompletedTask;
+        }
 
-        var groupedPostsAndEmbeds = rangeOfPosts.Zip(rangeOfPosts.Select(CreateEmbedFrom), (post, embed) =>
-            new Tuple<Post, Embed>(post, embed));
+        var groupedPostsAndEmbeds = rangeOfPosts.Zip(rangeOfPosts
+            .Select(CreateEmbedFrom),
+            (post, embed) => new Tuple<Post, Embed>(post, embed));
         
         _ = Parallel.ForEach(targetGuilds, async knownGuild =>
         {
