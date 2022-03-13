@@ -110,7 +110,10 @@ public static class Program
                         .Get<DiscordSettings>());
 
                 // Custom
-                serviceCollection.AddSingleton<DataSource>();
+                serviceCollection.AddSingleton<DataSource>(_ => new DataSource(new[]
+                {
+                    new Func<Post, bool>(post => post.Source.Contains(@"/en/")), // Posts should be English
+                }));
                 serviceCollection.AddSingleton<FlakEmitterService>();
 
                 // Discord

@@ -5,6 +5,12 @@ namespace FlakJacket.ClassLibrary;
 public class DataSource : IDisposable
 {
     private readonly HttpClient _client = new();
+    private readonly Func<Post, bool>[] _validators;
+
+    public DataSource(params Func<Post, bool>[] validators)
+    {
+        _validators = validators;
+    }
 
     public async Task<FeedReport> GetAsync(string uri)
     {
@@ -22,7 +28,7 @@ public class DataSource : IDisposable
 
         await File.WriteAllTextAsync("last-report.html", targetFeedNode.WriteTo());
 
-        return new FeedReport(targetFeedNode);
+        return new FeedReport(targetFeedNode, _validators);
     }
 
     public void Dispose()

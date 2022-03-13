@@ -6,7 +6,7 @@ namespace FlakJacket.ClassLibrary;
 
 public class FeedReport
 {
-    public FeedReport(HtmlNode? feedNode)
+    public FeedReport(HtmlNode? feedNode, Func<Post, bool>[] validators)
     {
         if (feedNode is null)
         {
@@ -15,11 +15,11 @@ public class FeedReport
         else
         {
             Posts = new Post[feedNode.ChildNodes.Count];
-            ParseFeedNode(feedNode);
+            ParseFeedNode(feedNode, validators);
         }
     }
 
-    private void ParseFeedNode(HtmlNode feedNode)
+    private void ParseFeedNode(HtmlNode feedNode, Func<Post, bool>[] validators)
     {
         for (var i = 0; i < feedNode.ChildNodes.Count; i++)
         {
@@ -37,7 +37,10 @@ public class FeedReport
                 Location = postNode.SelectSingleNode($"//div[contains(@id, '{id}')]//a[contains(@class, 'comment-link')]").InnerText
             };
 
-            Posts[i] = newPost;
+            if (validators.All(v => v(newPost)))
+            {
+                Posts[i] = newPost;
+            }
         }
     }
 
