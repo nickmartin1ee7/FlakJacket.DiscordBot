@@ -119,6 +119,7 @@ public class FlakEmitterService : IDisposable
     private Task BroadcastPostsAsync(params Snowflake[] targetGuilds)
     {
         var rangeOfPosts = _lastReport!.Posts[..GetIndexUpTo(_lastReport.Posts, _settings.MaxBroadcastPosts)]
+            .Where(p => p?.TimeAgo is not null)
             .OrderByDescending(p => p.TimeAgo)
             .ToArray();
 
