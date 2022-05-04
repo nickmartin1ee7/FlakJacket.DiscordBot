@@ -177,7 +177,10 @@ public class FlakEmitterService : IDisposable
 
     private static bool HasPostBeenEmitted(string newPostIdentifier, Result<IReadOnlyList<IMessage>> messages)
     {
-        if (messages.IsSuccess && !messages.Entity.Any())
+        if (messages.IsSuccess
+            && messages.IsDefined()
+            && !messages.Entity.Any()
+            || !messages.Entity.Any(e => e.Embeds.Any()))
             return false;
 
         var existingMessageIdentifiers = messages.Entity
