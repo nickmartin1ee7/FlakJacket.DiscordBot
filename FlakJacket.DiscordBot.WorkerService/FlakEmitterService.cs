@@ -121,7 +121,7 @@ public class FlakEmitterService : IDisposable
         var rangeOfPosts = _lastReport!.Posts[..GetIndexUpTo(_lastReport.Posts, _settings.MaxBroadcastPosts)]
             .Where(p => p?.TimeAgo is not null)
             .OrderBy(l => l.TimeAgo!.Contains("hour"))
-            .ThenBy(l => int.Parse(l.TimeAgo.Split(' ')[0]))
+            .ThenByDescending(l => int.Parse(l.TimeAgo.Split(' ')[0]))
             .ToArray();
 
         if (!rangeOfPosts.Any() || !targetGuilds.Any())
