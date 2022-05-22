@@ -48,14 +48,14 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
     {
         await LogCommandUsageAsync(typeof(FlakJacketCommands).GetMethod(nameof(SetupAsync)));
 
-        Result<IReadOnlyList<IChannel>> channels;
+        Snowflake targetGuildId;
 
         if (!string.IsNullOrWhiteSpace(guildId))
         {
             if (_adminSnowflake.HasValue && _ctx.User.ID == _adminSnowflake.Value   // Admin check
                 && Snowflake.TryParse(guildId, out var guildSnowflake))
             {
-                channels = await _guildApi.GetGuildChannelsAsync(guildSnowflake.Value);
+                targetGuildId = guildSnowflake.Value;
             }
             else
             {
@@ -65,8 +65,10 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
         }
         else
         {
-            channels = await _guildApi.GetGuildChannelsAsync(_ctx.GuildID.Value);
+            targetGuildId = _ctx.GuildID.Value; // Regular usage
         }
+
+        var channels = await _guildApi.GetGuildChannelsAsync(targetGuildId);
 
         if (!channels.IsSuccess)
         {
@@ -83,7 +85,7 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
         }
 
         var createResult = await _guildApi.CreateGuildChannelAsync(
-            _ctx.GuildID.Value,
+            targetGuildId,
             _settings.SetupChannelName,
             new Optional<ChannelType>(ChannelType.GuildText),
             new Optional<string>("Feed for updates on the war between Ukraine and Russia"),
@@ -101,7 +103,7 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
                 $"The channel <#{createResult.Entity.ID}> is created. This bot will now make regular posts when an update is available. **Do not rename this channel. Images used may be NSFW.**"),
             ct: CancellationToken);
 
-        await _flakEmitterService.EmitToAsync(_ctx.GuildID.Value);
+        await _flakEmitterService.EmitToAsync(targetGuildId);
 
         return reply.IsSuccess
             ? Result.FromSuccess()
