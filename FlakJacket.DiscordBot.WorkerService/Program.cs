@@ -100,6 +100,7 @@ public static class Program
     {
         _app = Host.CreateDefaultBuilder(args)
             .UseSerilog(Log.Logger)
+            .AddDiscordService(_ => settings.Token)
             .ConfigureServices(serviceCollection =>
             {
                 // Configuration
@@ -141,7 +142,6 @@ public static class Program
                     serviceCollection.AddResponder(responderType);
                 }
             })
-            .AddDiscordService(_ => settings.Token)
             .Build();
 
         return _app;
