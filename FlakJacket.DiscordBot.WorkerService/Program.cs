@@ -52,12 +52,12 @@ public static class Program
         var (shardResponse, shardGroup) = await DecideShardingAsync(settings.ShardManagerUri);
         var shouldShard = shardResponse.IsSuccessStatusCode;
 
+        AppDomain.CurrentDomain.ProcessExit += async (_, _) =>
+            await ReleaseShardGroupAsync(shardGroup, settings);
+
         var shardClients = shardGroup.ShardIds
             .Select(shardId => CreateHost(args, configuration, shouldShard, shardId, shardGroup, settings))
             .ToList();
-
-        AppDomain.CurrentDomain.ProcessExit += async (_, _) =>
-            await ReleaseShardGroupAsync(shardGroup, settings);
 
         try
         {
