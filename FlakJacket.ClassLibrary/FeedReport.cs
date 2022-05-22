@@ -69,7 +69,6 @@ public record Post
         }
 
         Title = title;
-
     }
 
     public string CalculateIdentifier()
