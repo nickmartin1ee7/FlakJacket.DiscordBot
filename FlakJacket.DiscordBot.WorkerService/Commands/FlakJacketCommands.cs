@@ -13,6 +13,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using FlakJacket.DiscordBot.WorkerService.Models;
 using Remora.Rest.Results;
+using FlakJacket.DiscordBot.WorkerService.Extensions;
+using System.Collections.Generic;
 
 namespace FlakJacket.DiscordBot.WorkerService.Commands;
 
@@ -21,6 +23,7 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
     private readonly FeedbackService _feedbackService;
     private readonly DiscordSettings _settings;
     private readonly FlakEmitterService _flakEmitterService;
+    private readonly Optional<Snowflake> _adminSnowflake;
 
     public FlakJacketCommands(ILogger<FlakJacketCommands> logger,
         FeedbackService feedbackService,
@@ -34,17 +37,43 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
         _feedbackService = feedbackService;
         _settings = settings;
         _flakEmitterService = flakEmitterService;
+        _adminSnowflake = _settings.AdminSnowflake.ToSnowflake();
     }
 
     [Command("setup")]
     [CommandType(ApplicationCommandType.ChatInput)]
     [Ephemeral]
     [Description("Setup a new channel to follow events between Ukraine and Russia")]
-    public async Task<IResult> SetupAsync()
+    public async Task<IResult> SetupAsync([Description("This optional field is for internal use only")] string guildId = "")
     {
         await LogCommandUsageAsync(typeof(FlakJacketCommands).GetMethod(nameof(SetupAsync)));
 
-        var channels = await _guildApi.GetGuildChannelsAsync(_ctx.GuildID.Value);
+        Result<IReadOnlyList<IChannel>> channels;
+
+        if (!string.IsNullOrWhiteSpace(guildId))
+        {
+            if (_adminSnowflake.HasValue && _ctx.User.ID == _adminSnowflake.Value   // Admin check
+                && Snowflake.TryParse(guildId, out var guildSnowflake))
+            {
+                channels = await _guildApi.GetGuildChannelsAsync(guildSnowflake.Value);
+            }
+            else
+            {
+                var result = await _feedbackService.SendContextualErrorAsync("Insufficient permission for internal controls. Try again **without** optional field.");
+                return Result.FromError(result);
+            }
+        }
+        else
+        {
+            channels = await _guildApi.GetGuildChannelsAsync(_ctx.GuildID.Value);
+        }
+
+        if (!channels.IsSuccess)
+        {
+            var result = await _feedbackService.SendContextualErrorAsync((channels.Error as RestResultError<RestError>)?.Error.Message ?? "Failed to setup new channel!");
+            return Result.FromError(result);
+        }
+
         var feedChannel = channels.Entity.FirstOrDefault(c => c.Name.Value == _settings.SetupChannelName);
 
         if (feedChannel is not null)

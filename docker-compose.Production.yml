@@ -11,6 +11,7 @@ services:
         - DiscordSettings__UpdateDelay
         - DiscordSettings__MaxBroadcastPosts
         - DiscordSettings__SourceUri
+        - DiscordSettings__AdminSnowflake
         - LoggerConfig__ServerUri
         - LoggerConfig__ApiKey
     depends_on:

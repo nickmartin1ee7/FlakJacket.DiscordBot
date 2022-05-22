@@ -10,4 +10,5 @@ public class DiscordSettings
     public string UpdateDelay { get; set; }
     public int MaxBroadcastPosts { get; set; }
     public string SourceUri { get; set; }
+    public string AdminSnowflake { get; set; }
 }

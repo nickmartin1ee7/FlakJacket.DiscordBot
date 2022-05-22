@@ -7,13 +7,14 @@ services:
       context: .
       dockerfile: FlakJacket.DiscordBot.WorkerService/Dockerfile
     environment:
-        - DiscordSettings__Token=OTMwMjg2NjM0MTcwMTk1OTk4.GA7OQD.BVBn6bm-th95hPWkTPvvSI3lrvkj4zyJG-wB7g
+        - DiscordSettings__Token=REPLACEME
         - DiscordSettings__Status=Testing!
         - DiscordSettings__ShardManagerUri=http://shardmanager
         - DiscordSettings__SetupChannelName=flakjacket
         - DiscordSettings__UpdateDelay=00:01
         - DiscordSettings__MaxBroadcastPosts=10
         - DiscordSettings__SourceUri=https://liveuamap.com
+        - DiscordSettings__AdminSnowflake=142056515732242432
         - LoggerConfig__ServerUri=http://seq
         - LoggerConfig__ApiKey
     depends_on:
