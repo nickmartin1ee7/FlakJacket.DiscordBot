@@ -198,12 +198,12 @@ public class FlakEmitterService : IDisposable
     {
         var sb = new StringBuilder();
 
-        sb.AppendLine($"Reported **{post.TimeAgo}** for the following location: **{post.Location}**");
+        sb.AppendLine($":alarm_clock: Reported **{post.TimeAgo}** for the following location: **{post.Location}**");
         sb.AppendLine();
-        sb.AppendLine($"Find out more at: {post.Source}");
+        sb.AppendLine($":information_source: Find out more at: {post.Source}");
 
         if (post.VideoUri is not null)
-            sb.AppendLine($"Video: {post.VideoUri}");
+            sb.AppendLine($":camera_with_flash: Video: {post.VideoUri}");
 
         return new Embed(
             Author: new Optional<IEmbedAuthor>(new EmbedAuthor(post.Id)),
