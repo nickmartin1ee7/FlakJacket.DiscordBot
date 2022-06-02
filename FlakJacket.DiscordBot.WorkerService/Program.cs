@@ -22,6 +22,7 @@ using DiscordBot.ShardManager.Models;
 using FlakJacket.ClassLibrary;
 using FlakJacket.DiscordBot.WorkerService.Commands;
 using FlakJacket.DiscordBot.WorkerService.Models;
+using FlakJacket.DiscordBot.WorkerService.Services;
 
 namespace FlakJacket.DiscordBot.WorkerService;
 public static class Program
