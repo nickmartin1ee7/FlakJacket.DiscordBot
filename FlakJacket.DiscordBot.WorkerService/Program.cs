@@ -56,6 +56,24 @@ public static class Program
         AppDomain.CurrentDomain.ProcessExit += async (_, _) =>
             await ReleaseShardGroupAsync(shardGroup, settings);
 
+        AppDomain.CurrentDomain.UnhandledException += async (o, e) =>
+        {
+            try
+            {
+                Log.Logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception caught! Is runtime terminating: {terminating}; Sender: {sender}",
+                    e.IsTerminating,
+                    o);
+
+                await ReleaseShardGroupAsync(shardGroup, settings);
+                
+                Log.CloseAndFlush();
+            }
+            finally
+            {
+                Environment.Exit(-1);
+            }
+        };
+
         var shardClients = shardGroup.ShardIds
             .Select(shardId => CreateHost(args, configuration, shouldShard, shardId, shardGroup, settings))
             .ToList();
