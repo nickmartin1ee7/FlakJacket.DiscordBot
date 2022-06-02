@@ -102,13 +102,15 @@ public class FlakEmitterService : IDisposable
             }
             else
             {
-                _logger.LogInformation("No guilds to broadcast to");
+                _logger.LogInformation("No guilds to receive broadcasts");
             }
 
             _logger.LogTrace("Updating in {_delayTime} @ {nextUpdate}", _delayTime, DateTime.Now.Add(_delayTime));
 
             await Task.Delay(_delayTime);
         }
+
+        _logger.LogInformation("{serviceName} has been cancelled", nameof(FlakEmitterService));
     }
 
     private static int GetIndexUpTo<T>(IReadOnlyCollection<T> arr, int maxIndex)
