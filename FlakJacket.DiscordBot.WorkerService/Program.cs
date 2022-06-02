@@ -115,7 +115,10 @@ public static class Program
                 {
                     new Func<Post, bool>(post => post.Source.Contains(@"/en/")), // Posts should be English
                 }));
+
                 serviceCollection.AddSingleton<FlakEmitterService>();
+
+                serviceCollection.AddSingleton<HeartbeatService>();
 
                 // Discord
                 serviceCollection
