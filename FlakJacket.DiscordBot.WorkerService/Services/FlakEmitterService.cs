@@ -14,7 +14,7 @@ using Remora.Rest.Core;
 using Remora.Rest.Results;
 using Remora.Results;
 
-namespace FlakJacket.DiscordBot.WorkerService;
+namespace FlakJacket.DiscordBot.WorkerService.Services;
 
 public class FlakEmitterService : IDisposable
 {
