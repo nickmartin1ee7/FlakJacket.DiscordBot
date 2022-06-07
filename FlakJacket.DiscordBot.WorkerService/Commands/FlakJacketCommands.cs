@@ -15,6 +15,7 @@ using FlakJacket.DiscordBot.WorkerService.Models;
 using Remora.Rest.Results;
 using FlakJacket.DiscordBot.WorkerService.Extensions;
 using System.Collections.Generic;
+using FlakJacket.DiscordBot.WorkerService.Services;
 
 namespace FlakJacket.DiscordBot.WorkerService.Commands;
 

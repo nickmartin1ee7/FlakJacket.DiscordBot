@@ -22,6 +22,7 @@ using DiscordBot.ShardManager.Models;
 using FlakJacket.ClassLibrary;
 using FlakJacket.DiscordBot.WorkerService.Commands;
 using FlakJacket.DiscordBot.WorkerService.Models;
+using FlakJacket.DiscordBot.WorkerService.Services;
 
 namespace FlakJacket.DiscordBot.WorkerService;
 public static class Program
@@ -54,6 +55,24 @@ public static class Program
 
         AppDomain.CurrentDomain.ProcessExit += async (_, _) =>
             await ReleaseShardGroupAsync(shardGroup, settings);
+
+        AppDomain.CurrentDomain.UnhandledException += async (o, e) =>
+        {
+            try
+            {
+                Log.Logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception caught! Is runtime terminating: {terminating}; Sender: {sender}",
+                    e.IsTerminating,
+                    o);
+
+                await ReleaseShardGroupAsync(shardGroup, settings);
+                
+                Log.CloseAndFlush();
+            }
+            finally
+            {
+                Environment.Exit(-1);
+            }
+        };
 
         var shardClients = shardGroup.ShardIds
             .Select(shardId => CreateHost(args, configuration, shouldShard, shardId, shardGroup, settings))
@@ -100,6 +119,7 @@ public static class Program
     {
         _app = Host.CreateDefaultBuilder(args)
             .UseSerilog(Log.Logger)
+            .AddDiscordService(_ => settings.Token)
             .ConfigureServices(serviceCollection =>
             {
                 // Configuration
@@ -114,7 +134,10 @@ public static class Program
                 {
                     new Func<Post, bool>(post => post.Source.Contains(@"/en/")), // Posts should be English
                 }));
+
                 serviceCollection.AddSingleton<FlakEmitterService>();
+
+                serviceCollection.AddSingleton<HeartbeatService>();
 
                 // Discord
                 serviceCollection
@@ -141,7 +164,6 @@ public static class Program
                     serviceCollection.AddResponder(responderType);
                 }
             })
-            .AddDiscordService(_ => settings.Token)
             .Build();
 
         return _app;
