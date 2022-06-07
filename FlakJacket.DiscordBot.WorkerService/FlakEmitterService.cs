@@ -163,7 +163,7 @@ public class FlakEmitterService : IDisposable
                 }
                 else
                 {
-                    _logger.LogError("Failed to Broadcast {postCount} posts to guild {guildId}: {error}", newEmbeds.Length,
+                    _logger.LogWarning("Failed to Broadcast {postCount} posts to guild {guildId}: {error}", newEmbeds.Length,
                         knownGuild, (result.Error as RestResultError<RestError>)?.Error.Message);
                 }
             }
