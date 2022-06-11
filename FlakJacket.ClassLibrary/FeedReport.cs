@@ -51,7 +51,7 @@ public record Post
 {
     private const int MAX_TITLE_LENGTH = 256;
 
-    public string Id { get; set; }
+    public string? Id { get; set; }
     public string Title { get; }
     public string Source { get; }
     public string? TimeAgo { get; set; }
