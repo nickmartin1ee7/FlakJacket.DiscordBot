@@ -180,37 +180,27 @@ public class FlakEmitterService : IDisposable
 
     private bool HasPostBeenEmitted(string newPostIdentifier, Result<IReadOnlyList<IMessage>> messages)
     {
-        // Debugging logging
         try
         {
             if (messages.IsSuccess
                 && messages.IsDefined()
-                && messages.Entity.IsDefined
+                && messages.Entity.IsDefined()
                 && !messages.Entity.Any()
                 || !messages.Entity.Any(e => e.Embeds.Any()))
                     return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred determining if any embeds were within existing messages");
-            return false;
-        }
 
-        var existingMessageIdentifiers = messages.Entity
-                .SelectMany(m => m.Embeds)
-                .Where(e => e.Footer.HasValue)
-                .Select(e => e.Footer.Value.Text);
+            var existingMessageIdentifiers = messages.Entity
+                    .SelectMany(m => m.Embeds)
+                    .Where(e => e.Footer.HasValue)
+                    .Select(e => e.Footer.Value.Text);
 
-        // Debugging logging
-        try
-        { 
             return existingMessageIdentifiers
                 .Any(existingIdentifier =>
                     existingIdentifier == newPostIdentifier);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred determining if any existing message identifiers matched the new post identifier");
+            _logger.LogError(ex, "An error occurred determining if any existing message have already been posted");
             return false;
         }
     }
