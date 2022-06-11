@@ -184,7 +184,7 @@ public class FlakEmitterService : IDisposable
         {
             if (messages.IsSuccess
                 && messages.IsDefined()
-                && messages.Entity.IsDefined()
+                && messages.Entity is not null
                 && !messages.Entity.Any()
                 || !messages.Entity.Any(e => e.Embeds.Any()))
                     return false;
