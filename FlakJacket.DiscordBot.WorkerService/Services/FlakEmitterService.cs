@@ -182,13 +182,10 @@ public class FlakEmitterService : IDisposable
     {
         try
         {
-            if (messages.IsSuccess
-                && messages.IsDefined()
-                && messages.Entity is not null
-                && !messages.Entity.Any()
-                || !messages.Entity.Any(e =>
-                    e.Embeds is not null && e.Embeds.Count != 0))
-                    return false;
+            if (messages.IsSuccess // Successful API call
+                && messages.IsDefined() // Object is not null
+                && !messages.Entity.Any()) // No messages
+                    return false; // Couldn't have been posted
 
             var existingMessageIdentifiers = messages.Entity
                     .SelectMany(m => m.Embeds)
