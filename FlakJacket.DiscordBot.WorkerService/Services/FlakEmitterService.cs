@@ -148,13 +148,16 @@ public class FlakEmitterService : IDisposable
 
             var lastMessages = await _channelApi.GetChannelMessagesAsync(feedChannel.ID);
 
-            var newEmbeds = groupedPostsAndEmbeds
-                .Where(g => !HasPostBeenEmitted(g.Item1.CalculateIdentifier(), lastMessages))
-                .Select(g => g.Item2)
-                .ToArray();
+            var unpostedGroups = groupedPostsAndEmbeds
+                .Where(g =>
+                    !HasPostBeenEmitted(g.Item1.CalculateIdentifier(), lastMessages));
 
-            if (newEmbeds.Any())
+            if (unpostedGroups.Any())
             {
+                var newEmbeds = unpostedGroups
+                    .Select(g => g.Item2)
+                    .ToArray();
+
                 var result = await _channelApi.CreateMessageAsync(feedChannel.ID,
                     embeds: new Optional<IReadOnlyList<IEmbed>>(newEmbeds));
 
@@ -187,9 +190,14 @@ public class FlakEmitterService : IDisposable
                 && !messages.Entity.Any()) // No messages
                     return false; // Couldn't have been posted
 
-            var existingMessageIdentifiers = messages.Entity
+            var embedsWithFooters = messages.Entity
                     .SelectMany(m => m.Embeds)
-                    .Where(e => e.Footer.HasValue)
+                    .Where(e => e.Footer.HasValue);
+
+            if (!embedsWithFooters.Any())
+                return false;
+
+            var existingMessageIdentifiers = embedsWithFooters
                     .Select(e => e.Footer.Value.Text);
 
             return existingMessageIdentifiers
