@@ -185,9 +185,9 @@ public class FlakEmitterService : IDisposable
     {
         try
         {
-            if (messages.IsSuccess // Successful API call
-                && messages.IsDefined() // Object is not null
-                && !messages.Entity.Any()) // No messages
+            if (!messages.IsSuccess // Successful API call
+                || !messages.IsDefined() // Object is not null
+                || !messages.Entity.Any()) // No messages
                     return false; // Couldn't have been posted
 
             var embedsWithFooters = messages.Entity
