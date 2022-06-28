@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using FlakJacket.DiscordBot.WorkerService.Extensions;
 using FlakJacket.DiscordBot.WorkerService.Models;
+using FlakJacket.DiscordBot.WorkerService.Services;
 
 using Microsoft.Extensions.Logging;
 
@@ -23,14 +24,17 @@ public class GuildJoinedResponder : IResponder<IGuildCreate>
     private readonly ILogger<GuildJoinedResponder> _logger;
     private readonly DiscordSettings _settings;
     private readonly IDiscordRestGuildAPI _guildApi;
+    private readonly FlakEmitterService _flakEmitterService;
 
     public GuildJoinedResponder(ILogger<GuildJoinedResponder> logger,
         DiscordSettings settings,
-        IDiscordRestGuildAPI guildApi)
+        IDiscordRestGuildAPI guildApi,
+        FlakEmitterService flakEmitterService)
     {
         _logger = logger;
         _settings = settings;
         _guildApi = guildApi;
+        _flakEmitterService = flakEmitterService;
     }
 
     public async Task<Result> RespondAsync(IGuildCreate gatewayEvent, CancellationToken ct = new())
@@ -79,5 +83,7 @@ public class GuildJoinedResponder : IResponder<IGuildCreate>
             _logger.LogError("Failed to automatically create new channel for new guild ({guildId})", gatewayEvent.ID);
             return;
         }
+
+        await _flakEmitterService.EmitToAsync(gatewayEvent.ID);
     }
 }
