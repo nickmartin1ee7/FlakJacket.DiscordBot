@@ -98,7 +98,7 @@ public class ReadyResponder : IResponder<IReady>
                 gatewayEvent.User.ToFullUsername(),
                 gatewayEvent.Guilds.Count,
                 shardUserCount,
-                shardGuilds.Select(g => $"{g.Value} ({g.Key})".ToArray()));
+                shardGuilds.Select(g => $"{g.Value} ({g.Key})"));
         }
 
         if (gatewayEvent.Shard.HasValue)
