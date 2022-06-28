@@ -85,7 +85,7 @@ public class FlakEmitterService : IDisposable
 
                     if (_lastReport.Posts.Any())
                     {
-                        await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.ToArray());
+                        await BroadcastPostsAsync(ShortTermMemory.KnownGuilds.Keys.ToArray());
                     }
 
                 }

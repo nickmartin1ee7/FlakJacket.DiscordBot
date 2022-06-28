@@ -21,10 +21,11 @@ public class GuildLeftResponder : IResponder<IGuildDelete>
 
     public Task<Result> RespondAsync(IGuildDelete gatewayEvent, CancellationToken ct = new())
     {
-        if (!ShortTermMemory.KnownGuilds.Contains(gatewayEvent.ID))
+        if (!ShortTermMemory.KnownGuilds.TryGetValue(gatewayEvent.ID, out var guildName))
             return Task.FromResult(Result.FromSuccess());
 
-        _logger.LogInformation("Left guild: {guildId}",
+        _logger.LogInformation("Left guild: {guildName} ({guildId})",
+            guildName ?? "N/A",
             gatewayEvent.ID);
 
         ShortTermMemory.KnownGuilds.Remove(gatewayEvent.ID);

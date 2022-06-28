@@ -11,6 +11,7 @@ services:
         - DiscordSettings__Status=Testing!
         - DiscordSettings__ShardManagerUri=http://shardmanager
         - DiscordSettings__SetupChannelName=flakjacket
+        - DiscordSettings__SetupChannelDescription=Feed for updates on the war between Ukraine and Russia
         - DiscordSettings__UpdateDelay=00:01
         - DiscordSettings__MaxBroadcastPosts=10
         - DiscordSettings__SourceUri=https://liveuamap.com

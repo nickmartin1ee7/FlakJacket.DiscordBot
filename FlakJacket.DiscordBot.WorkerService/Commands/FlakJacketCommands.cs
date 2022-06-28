@@ -89,7 +89,7 @@ public class FlakJacketCommands : LoggedCommandGroup<FlakJacketCommands>
             targetGuildId,
             _settings.SetupChannelName,
             new Optional<ChannelType>(ChannelType.GuildText),
-            new Optional<string>("Feed for updates on the war between Ukraine and Russia"),
+            new Optional<string>(_settings.SetupChannelDescription),
             isNsfw: true);
 
         if (!createResult.IsSuccess)

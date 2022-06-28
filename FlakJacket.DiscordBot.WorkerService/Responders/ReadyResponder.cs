@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using FlakJacket.DiscordBot.WorkerService.Extensions;
 using FlakJacket.DiscordBot.WorkerService.Models;
 using FlakJacket.DiscordBot.WorkerService.Services;
+using System.Linq;
 
 namespace FlakJacket.DiscordBot.WorkerService.Responders;
 
@@ -44,16 +45,6 @@ public class ReadyResponder : IResponder<IReady>
 
     public async Task<Result> RespondAsync(IReady gatewayEvent, CancellationToken ct = new())
     {
-        void RememberInitialGuildIds()
-        {
-            foreach (var gatewayEventGuild in gatewayEvent.Guilds)
-            {
-                ShortTermMemory.KnownGuilds.Add(gatewayEventGuild.ID);
-            }
-
-            _logger.LogGuildCount();
-        }
-
         void UpdatePresence()
         {
             var updateCommand = new UpdatePresence(ClientStatus.Online, false, null, new IActivity[]
@@ -77,28 +68,37 @@ public class ReadyResponder : IResponder<IReady>
         async Task LogClientDetailsAsync()
         {
             var shardUserCount = 0;
-            var shardGuilds = new List<Snowflake>(gatewayEvent.Guilds.Count);
+            var shardGuilds = new Dictionary<Snowflake, string?>(gatewayEvent.Guilds.Count);
 
             foreach (var guild in gatewayEvent.Guilds)
             {
-                shardGuilds.Add(guild.ID);
+                ShortTermMemory.KnownGuilds.TryAdd(guild.ID, null);
 
-                var guildPreview = await _guildApi.GetGuildPreviewAsync(guild.ID, ct);
+                var guildResult = await _guildApi.GetGuildAsync(guild.ID, ct: ct);
 
-                if (!guildPreview.IsSuccess)
+                if (!guildResult.IsSuccess)
                     continue;
 
-                shardUserCount += guildPreview.Entity.ApproximateMemberCount.HasValue
-                    ? guildPreview.Entity.ApproximateMemberCount.Value
+                shardUserCount += guildResult.Entity.ApproximateMemberCount.HasValue
+                    ? guildResult.Entity.ApproximateMemberCount.Value
                     : 0;
+
+                var guildName = guildResult.IsSuccess ? guildResult.Entity.Name : null;
+                
+                shardGuilds.Add(guild.ID, guildName);
+                
+                ShortTermMemory.KnownGuilds.Remove(guild.ID);
+                ShortTermMemory.KnownGuilds.TryAdd(guild.ID, guildName);
             }
+
+            _logger.LogGuildCount();
 
             _logger.LogInformation(
                 "{botUser} is online for {shardGuildCount} guilds and {shardUserCount} users. Guilds: {guilds}",
                 gatewayEvent.User.ToFullUsername(),
                 gatewayEvent.Guilds.Count,
                 shardUserCount,
-                shardGuilds);
+                shardGuilds.Select(g => $"{g.Value} ({g.Key})".ToArray()));
         }
 
         if (gatewayEvent.Shard.HasValue)
@@ -109,7 +109,6 @@ public class ReadyResponder : IResponder<IReady>
                 gatewayEvent.Shard.Value.ShardCount);
         }
 
-        RememberInitialGuildIds();
 
         if (gatewayEvent.Shard.HasValue && gatewayEvent.Shard.Value.ShardID == 0)
         {
@@ -117,7 +116,8 @@ public class ReadyResponder : IResponder<IReady>
             await UpdateGlobalSlashCommands();
         }
 
-        _ = Task.Run(LogClientDetailsAsync, ct);
+        await LogClientDetailsAsync();
+
         _flakEmitterService.Start();
 
         return Result.FromSuccess();
